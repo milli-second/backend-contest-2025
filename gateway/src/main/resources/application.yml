@@ -1,0 +1,80 @@
+server:
+  port: 8088
+
+---
+
+spring:
+  config:
+    activate:
+      on-profile: default
+  cloud:
+    gateway:
+#<<< API Gateway / Routes
+      routes:
+        - id: userservice
+          uri: http://localhost:8081
+          predicates:
+            - Path=/users/**, 
+        - id: insightservice
+          uri: http://localhost:8082
+          predicates:
+            - Path=/insights/**, /viewInsightReports/**
+        - id: usageservice
+          uri: http://localhost:8083
+          predicates:
+            - Path=/screenData/**, /viewUsageReports/**
+        - id: frontend
+          uri: http://localhost:8080
+          predicates:
+            - Path=/**
+#>>> API Gateway / Routes
+      globalcors:
+        corsConfigurations:
+          '[/**]':
+            allowedOriginPatterns:
+              - "*"
+            allowedMethods:
+              - "*"
+            allowedHeaders:
+              - "*"
+            allowCredentials: true
+
+
+---
+
+spring:
+  config:
+    activate:
+      on-profile: docker
+  cloud:
+    gateway:
+      routes:
+        - id: userservice
+          uri: http://userservice:8080
+          predicates:
+            - Path=/users/**, 
+        - id: insightservice
+          uri: http://insightservice:8080
+          predicates:
+            - Path=/insights/**, 
+        - id: usageservice
+          uri: http://usageservice:8080
+          predicates:
+            - Path=/screenData/**, 
+        - id: frontend
+          uri: http://frontend:8080
+          predicates:
+            - Path=/**
+      globalcors:
+        corsConfigurations:
+          '[/**]':
+            allowedOriginPatterns:
+              - "*"
+            allowedMethods:
+              - "*"
+            allowedHeaders:
+              - "*"
+            allowCredentials: true
+
+server:
+  port: 8080

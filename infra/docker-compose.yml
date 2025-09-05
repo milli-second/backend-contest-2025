@@ -26,6 +26,9 @@ services:
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
       KAFKA_LOG_RETENTION_HOURS: 168
       KAFKA_LOG_DIRS: "/var/lib/kafka/data"
+      # 로깅 레벨 조정 (메시지 확인을 위해 일부 INFO 허용)
+      KAFKA_LOG4J_LOGGERS: "kafka.controller=WARN,kafka.log=WARN,org.apache.kafka.controller=WARN,kafka.request.logger=INFO"
+      KAFKA_LOG4J_ROOT_LOGLEVEL: "INFO"
     volumes:
       - kafka-data:/var/lib/kafka/data
 

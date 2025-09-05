@@ -1,35 +1,41 @@
 package screentimeai.infra;
 
-import jakarta.transaction.Transactional;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cloud.stream.function.StreamBridge;
 import org.springframework.web.bind.annotation.*;
-import screentimeai.domain.*;
+import screentimeai.application.UserService;
 
 //<<< Clean Arch / Inbound Adaptor
 
 @RestController
 @RequestMapping(value="/users")
-@Transactional
 public class UserController {
 
-    @Autowired
-    UserRepository userRepository;
+    private final UserService userService;
     
-    @Autowired
-    StreamBridge streamBridge;
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
     
     @GetMapping("/test")
     public String test() {
         return "UserService is running!";
     }
     
-    @PostMapping("/send-message")
-    public String sendMessage(@RequestParam String message) {
-        String fullMessage = "Test message from UserService: " + message;
-        streamBridge.send("userEventOutput", fullMessage);
-        System.out.println("📤 메시지 발송: " + fullMessage);
-        return "Message sent: " + message;
+    @PostMapping("/login")
+    public String login(@RequestParam String nickname) {
+        userService.login(nickname);
+        return "User logged in: " + nickname;
+    }
+    
+    @PostMapping("/logout")
+    public String logout(@RequestParam String nickname) {
+        userService.logout(nickname);
+        return "User logged out: " + nickname;
+    }
+    
+    @PostMapping("/signup")
+    public String signup(@RequestParam String nickname) {
+        userService.signup(nickname);
+        return "User signed up: " + nickname;
     }
 }
 //>>> Clean Arch / Inbound Adaptor

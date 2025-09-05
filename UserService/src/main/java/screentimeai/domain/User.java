@@ -1,19 +1,8 @@
 package screentimeai.domain;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import java.time.LocalDate;
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
 import jakarta.persistence.*;
 import lombok.Data;
 import screentimeai.UserserviceApplication;
-import screentimeai.domain.AccountDeactivated;
-import screentimeai.domain.LoggedIn;
-import screentimeai.domain.LoggedOut;
-import screentimeai.domain.PasswordResetted;
-import screentimeai.domain.SignedUp;
 
 @Entity
 @Table(name = "User_table")

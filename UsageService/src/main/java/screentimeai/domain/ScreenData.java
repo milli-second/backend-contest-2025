@@ -1,15 +1,10 @@
 package screentimeai.domain;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import java.time.LocalDate;
-import java.util.Collections;
 import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import javax.persistence.*;
+
+import jakarta.persistence.*;
 import lombok.Data;
 import screentimeai.UsageserviceApplication;
-import screentimeai.domain.DailyAnalysisDataPrepared;
 
 @Entity
 @Table(name = "ScreenData_table")
@@ -27,7 +22,7 @@ public class ScreenData {
 
     private Date date;
 
-    private time time;
+    private Date time; //TODO: time DATE 타입 맞는 지 확인하기
 
     private String packageName;
 

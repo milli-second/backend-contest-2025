@@ -1,9 +1,6 @@
 package screentimeai.domain;
 
-import java.time.LocalDate;
-import java.util.*;
 import lombok.*;
-import screentimeai.domain.*;
 import screentimeai.infra.AbstractEvent;
 
 //<<< DDD / Domain Event

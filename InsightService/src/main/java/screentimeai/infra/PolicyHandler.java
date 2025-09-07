@@ -1,12 +1,14 @@
 package screentimeai.infra;
 
-import javax.transaction.Transactional;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cloud.stream.annotation.StreamListener;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Service;
 import screentimeai.config.kafka.KafkaProcessor;
-import screentimeai.domain.*;
+import screentimeai.domain.Insight;
+import screentimeai.domain.DailyAnalysisDataPrepared;
+import screentimeai.domain.InsightRepository;
+import org.springframework.cloud.stream.annotation.StreamListener;
 
 //<<< Clean Arch / Inbound Adaptor
 @Service

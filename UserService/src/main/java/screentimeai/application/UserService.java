@@ -2,39 +2,58 @@ package screentimeai.application;
 
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import screentimeai.domain.*;
 
+import java.util.List;
+
 @Service
 @Transactional
 public class UserService {
-
     private final ApplicationEventPublisher applicationEventPublisher;
     private final UserRepository userRepository;
     private final KafkaTemplate<String, String> kafkaTemplate;
+    private final PasswordEncoder passwordEncoder; // ✅ 추가
 
 
-    public UserService(ApplicationEventPublisher applicationEventPublisher, UserRepository userRepository, KafkaTemplate<String,String> kafkaTemplate) {
+    public UserService(ApplicationEventPublisher applicationEventPublisher, UserRepository userRepository, KafkaTemplate<String,String> kafkaTemplate, PasswordEncoder passwordEncoder) {
         this.applicationEventPublisher = applicationEventPublisher;
         this.userRepository = userRepository;
         this.kafkaTemplate=kafkaTemplate;
+        this.passwordEncoder = passwordEncoder;
+
     }
 
-    public void login(String nickname) {
+    // ✅ 로그인 (비밀번호 검증 + Kafka 발행 포함)
+    public boolean login(String nickname, String rawPassword) {
         System.out.println("🔐 Processing user login: " + nickname);
-        
-        // 실제 로그인 비즈니스 로직 (예: 사용자 검증, 세션 생성 등)
-        // 현재는 간단하게 이벤트만 발행
-        
+
+        User user = userRepository.findAll().stream()
+                .filter(u -> u.getNickname().equals(nickname))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("❌ 사용자 없음: " + nickname));
+
+        // 비밀번호 매칭 확인
+        if (!passwordEncoder.matches(rawPassword, user.getPassword())) {
+            throw new IllegalArgumentException("❌ 비밀번호 불일치");
+        }
+
         LoggedIn loggedInEvent = new LoggedIn();
-        loggedInEvent.setId(1L);
+        loggedInEvent.setId(user.getId());
         loggedInEvent.setNickname(nickname);
-        
-        System.out.println("📤 Publishing LoggedIn domain event from service");
+
+        // 🔔 스프링 이벤트 발행
         applicationEventPublisher.publishEvent(loggedInEvent);
-        
-        System.out.println("✅ User login completed: " + nickname);
+
+        // 🔔 Kafka 발행
+        String topic = "user_login";
+        String message = String.format("User{id=%d,nickname=%s,action=login}", user.getId(), nickname);
+        kafkaTemplate.send(topic, message);
+
+        System.out.println("✅ User login success: " + nickname);
+        return true;
     }
 
     public void logout(String nickname) {
@@ -50,7 +69,7 @@ public class UserService {
         System.out.println("✅ User logout completed: " + nickname);
     }
 
-    public void signup(String nickname) {
+    public void signup(String nickname,String rawPassword) {
         System.out.println("✍️ Processing user signup: " + nickname);
 
         //1 닉네임 중복 체크
@@ -60,22 +79,32 @@ public class UserService {
         //2 User 저장
         User user = new User();
         user.setNickname(nickname);
+        user.setPassword(passwordEncoder.encode(rawPassword)); // ✅ 비밀번호 암호화 저장
         userRepository.save(user);
 
         //3 이벤트 발행
 
         SignedUp signedUpEvent = new SignedUp();
-        signedUpEvent.setId(1L);
+        signedUpEvent.setId(user.getId());
         signedUpEvent.setNickname(nickname);
 
         //카프카 발행
         String topic="user_signup";
-        String message=String.format("User{id=%d,nickname=%s}",user.getId(),nickname);
-        
+        // ✅ 비밀번호도 메시지에 포함
+        String message = String.format("User{id=%d,nickname=%s,password=%s}",
+                user.getId(), nickname,user.getPassword());//테스트 용이어서 비번 포함, 나중에 뺄 것
+
+
         System.out.println("📤 Publishing SignedUp domain event from service");
         applicationEventPublisher.publishEvent(signedUpEvent);
         kafkaTemplate.send(topic, message);//메세지 보내기
 
         System.out.println("✅ User signup completed: " + nickname);
+    }
+
+    // ✅ DB 전체 유저 조회
+
+    public List<User> findAll() {
+        return userRepository.findAll();
     }
 }

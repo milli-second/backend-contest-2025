@@ -24,16 +24,32 @@ public class AbstractEvent {
         this.timestamp = System.currentTimeMillis();
     }
 
+//    public void publish() {
+//        /**
+//         * spring streams 함수형 방식
+//         */
+//        StreamBridge streamBridge = UserserviceApplication.applicationContext.getBean(
+//            StreamBridge.class
+//        );
+//
+//        streamBridge.send("eventProducer-out-0", this);
+//    }
     public void publish() {
-        /**
-         * spring streams 함수형 방식
-         */
-        StreamBridge streamBridge = UserserviceApplication.applicationContext.getBean(
-            StreamBridge.class
-        );
-        
-        streamBridge.send("eventProducer-out-0", this);
+        if (UserserviceApplication.applicationContext == null) {
+            System.out.println("⚠️ ApplicationContext is null, skipping publish for " + this.getClass().getSimpleName());
+            return;
+        }
+
+        try {
+            StreamBridge streamBridge = UserserviceApplication.applicationContext.getBean(StreamBridge.class);
+            streamBridge.send("eventProducer-out-0", this);
+            System.out.println("📤 Event published via StreamBridge: " + this.getClass().getSimpleName());
+        } catch (Exception e) {
+            System.out.println("⚠️ Failed to publish event: " + e.getMessage());
+        }
     }
+
+
 
     public void publishAfterCommit() {
         TransactionSynchronizationManager.registerSynchronization(

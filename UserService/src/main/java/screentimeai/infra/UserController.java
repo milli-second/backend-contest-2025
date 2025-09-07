@@ -21,8 +21,8 @@ public class UserController {
     }
     
     @PostMapping("/login")
-    public String login(@RequestParam String nickname) {
-        userService.login(nickname);
+    public String login(@RequestParam String nickname, @RequestParam String password) {
+        userService.login(nickname, password);
         return "User logged in: " + nickname;
     }
     
@@ -33,8 +33,8 @@ public class UserController {
     }
     
     @PostMapping("/signup")
-    public String signup(@RequestParam String nickname) {
-        userService.signup(nickname);
+    public String signup(@RequestParam String nickname, @RequestParam String password) {
+        userService.signup(nickname,password);
         return "User signed up: " + nickname;
     }
 }

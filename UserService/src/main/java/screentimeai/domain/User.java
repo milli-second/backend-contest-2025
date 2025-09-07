@@ -9,15 +9,11 @@ import screentimeai.UserserviceApplication;
 @Data
 //<<< DDD / Aggregate Root
 public class User {
-
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
     private String nickname;
-
-    private String category;
-
+    private String category;//초기에는 null처리
     private String password;
 
     @PostPersist

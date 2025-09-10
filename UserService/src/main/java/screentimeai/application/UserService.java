@@ -39,7 +39,6 @@ public class UserService {
         if (!passwordEncoder.matches(rawPassword, user.getPassword())) {
             throw new IllegalArgumentException("❌ 비밀번호 불일치");
         }
-
         LoggedIn loggedInEvent = new LoggedIn();
         loggedInEvent.setId(user.getId());
         loggedInEvent.setNickname(nickname);
@@ -56,20 +55,31 @@ public class UserService {
         return true;
     }
 
-    public void logout(String nickname) {
+    public boolean logout(String nickname) {
         System.out.println("🚪 Processing user logout: " + nickname);
-        
+
+        // 1. 유저 존재 여부 확인
+        User user = userRepository.findAll().stream()
+                .filter(u -> u.getNickname().equals(nickname))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("❌ 사용자 없음: " + nickname));
+
+        // 2. 스프링 이벤트 발행
         LoggedOut loggedOutEvent = new LoggedOut();
-        loggedOutEvent.setId(1L);
+        loggedOutEvent.setId(user.getId());
         loggedOutEvent.setNickname(nickname);
-        
-        System.out.println("📤 Publishing LoggedOut domain event from service");
         applicationEventPublisher.publishEvent(loggedOutEvent);
-        
-        System.out.println("✅ User logout completed: " + nickname);
+
+        // 3. Kafka 발행
+        String topic = "user_logout";
+        String message = String.format("User{id=%d,nickname=%s,action=logout}", user.getId(), nickname);
+        kafkaTemplate.send(topic, message);
+
+        System.out.println("✅ User logout success: " + nickname);
+        return true;
     }
 
-    public void signup(String nickname,String rawPassword) {
+    /*public void signup(String nickname,String rawPassword) {
         System.out.println("✍️ Processing user signup: " + nickname);
 
         //1 닉네임 중복 체크
@@ -106,5 +116,35 @@ public class UserService {
 
     public List<User> findAll() {
         return userRepository.findAll();
+    }*/
+
+    public void signup(String nickname, String rawPassword) {
+        if (userRepository.existsByNickname(nickname)) {
+            throw new IllegalArgumentException("이미 사용 중인 닉네임입니다: " + nickname);
+        }
+        User user = new User();
+        user.setNickname(nickname);
+        user.setPassword(passwordEncoder.encode(rawPassword));
+        //user.markSignedUp(); // ✅ 이벤트 기록
+
+        userRepository.save(user); // 👉 여기서 @PostPersist가 자동 실행됨
+        user.markSignedUp(); // ✅ 이벤트 기록
+
+
+        // ✅ 도메인 이벤트 생성
+//        SignedUp event = new SignedUp();
+//        event.setId(user.getId());
+//        event.setNickname(user.getNickname());
+//
+//        // ✅ Spring 이벤트로 발행
+//        applicationEventPublisher.publishEvent(event);
+        // 이벤트 발행은 @PostPersist가 대신 해줌.
+
+        System.out.println("📤 User signup event published for nickname=" + user.getNickname());
+
     }
+
+
+
+
 }

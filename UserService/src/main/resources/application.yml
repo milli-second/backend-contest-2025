@@ -94,7 +94,6 @@
 #      value-serializer: org.apache.kafka.common.serialization.StringSerializer
 #
 
-
 server:
   port: 8081
 
@@ -103,21 +102,22 @@ spring:
     name: userservice
 
   datasource:
-    url: jdbc:h2:mem:testdb
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
-  h2:
-    console:
-      enabled: true
+    url: jdbc:postgresql://localhost:5433/userservice
+    driver-class-name: org.postgresql.Driver
+    username: postgres
+    password: postgres
+#  h2:
+#    console:
+#      enabled: true
 
   jpa:
+    hibernate:
+      ddl-auto: update   # ddl-auto는 properties 안이 아니라 hibernate 아래
     properties:
       hibernate:
-        ddl-auto: update
+        dialect: org.hibernate.dialect.PostgreSQLDialect
         show_sql: true
         format_sql: true
-        implicit_naming_strategy: org.hibernate.boot.model.naming.ImplicitNamingStrategyComponentPathImpl
 
   kafka:
     bootstrap-servers: localhost:9092

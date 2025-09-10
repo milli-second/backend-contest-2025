@@ -34,6 +34,7 @@ public class UserController {
     
     @PostMapping("/signup")
     public String signup(@RequestParam String nickname, @RequestParam String password) {
+        System.out.println("📥 nickname raw param: [" + nickname + "]");
         userService.signup(nickname,password);
         return "User signed up: " + nickname;
     }

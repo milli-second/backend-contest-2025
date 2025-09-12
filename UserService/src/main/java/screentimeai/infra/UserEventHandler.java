@@ -17,13 +17,13 @@ public class UserEventHandler {
     @TransactionalEventListener
     public void handle(LoggedIn event) {
         System.out.println("🎯 Handling LoggedIn event: " + event.getNickname());
-        eventPublisher.publish("eventProducer-out-0", event, "LoggedIn");
+        eventPublisher.publish("eventProducer-out-2", event, "LoggedIn");
     }
 
     @TransactionalEventListener
     public void handle(LoggedOut event) {
         System.out.println("🎯 Handling LoggedOut event: " + event.getNickname());
-        eventPublisher.publish("eventProducer-out-0", event, "LoggedOut");
+        eventPublisher.publish("eventProducer-out-1", event, "LoggedOut");
     }
 
     @TransactionalEventListener

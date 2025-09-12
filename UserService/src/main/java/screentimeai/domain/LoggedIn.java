@@ -16,6 +16,8 @@ public class LoggedIn extends AbstractEvent {
 
     public LoggedIn(User aggregate) {
         super(aggregate);
+        this.id = aggregate.getId();
+        this.nickname = aggregate.getNickname();
     }
 
     public LoggedIn() {

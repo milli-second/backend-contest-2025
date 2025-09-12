@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 import org.springframework.data.domain.AfterDomainEventPublication;
 import org.springframework.data.domain.DomainEvents;
-import screentimeai.UserserviceApplication;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -14,7 +14,7 @@ import java.util.List;
 @Table(name = "User_table")
 @Data
 //<<< DDD / Aggregate Root
-public class User {
+/*public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -22,32 +22,6 @@ public class User {
     private String category;//초기에는 null처리
     private String password;
 
-    /*
-    @PostPersist
-    public void onPostPersist() {
-        LoggedIn loggedIn = new LoggedIn(this);
-        loggedIn.publishAfterCommit();
-
-        LoggedOut loggedOut = new LoggedOut(this);
-        loggedOut.publishAfterCommit();
-
-        SignedUp signedUp = new SignedUp(this);
-        signedUp.publishAfterCommit();
-
-        AccountDeactivated accountDeactivated = new AccountDeactivated(this);
-        accountDeactivated.publishAfterCommit();
-
-        PasswordResetted passwordResetted = new PasswordResetted(this);
-        passwordResetted.publishAfterCommit();
-    }
-
-    public static UserRepository repository() {
-        UserRepository userRepository = UserserviceApplication.applicationContext.getBean(
-            UserRepository.class
-        );
-        return userRepository;
-    }*/
-    // 👉 JPA가 DB에 저장하지 않도록 @Transient 붙임
     @Transient
     private final List<Object> domainEvents = new ArrayList<>();
 
@@ -66,6 +40,7 @@ public class User {
         domainEvents.add(new LoggedOut(this));
     }
 
+
     // ===============================
     // 스프링 데이터가 자동으로 이벤트 발행할 메서드
     // ===============================
@@ -83,7 +58,58 @@ public class User {
     @PostPersist
     public void onPostPersist() {
         this.markSignedUp();
+        this.markLoggedIn();
+        this.markLoggedOut();
+    }
+
+
+}
+//>>> DDD / Aggregate Root*/
+
+public class User {
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    private String nickname;
+    private String password;
+
+    @Transient
+    private final List<Object> domainEvents = new ArrayList<>();
+
+    public void signup(String rawPassword, PasswordEncoder encoder) {
+        this.password = encoder.encode(rawPassword);
+        this.domainEvents.add(new SignedUp(this));
+    }
+
+    public void login(String rawPassword, PasswordEncoder encoder) {
+        if (!encoder.matches(rawPassword, this.password)) {
+            throw new IllegalArgumentException("❌ 비밀번호 불일치");
+        }
+        this.domainEvents.add(new LoggedIn(this));
+    }
+    public void markSignedUp() {
+        domainEvents.add(new SignedUp(this));
+    }
+
+    public void logout() {
+        this.domainEvents.add(new LoggedOut(this));
+    }
+
+    @DomainEvents
+    public Collection<Object> events() {
+        return domainEvents;
+    }
+
+    @AfterDomainEventPublication
+    public void clearEvents() {
+        domainEvents.clear();
+    }
+
+    @PostPersist
+    public void onPostPersist() {
+        this.markSignedUp();
     }
 
 }
-//>>> DDD / Aggregate Root
+
+
+

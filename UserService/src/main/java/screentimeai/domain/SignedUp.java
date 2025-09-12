@@ -19,7 +19,7 @@ public class SignedUp extends AbstractEvent {
     public SignedUp(User user) {
         this.id = user.getId();
         this.nickname = user.getNickname();
-        this.category = user.getCategory();
+        this.category = null;
         this.password = user.getPassword();
     }
 

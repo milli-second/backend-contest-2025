@@ -10,7 +10,6 @@ import screentimeai.infra.AbstractEvent;
 @Data
 @ToString
 public class SignedUp extends AbstractEvent {
-
     private Long id;
     private String nickname;
     private String category;//초기에는 null처리

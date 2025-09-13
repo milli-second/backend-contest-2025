@@ -4,6 +4,8 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
+
 import org.springframework.stereotype.Component;
 
 import java.util.Date;
@@ -13,9 +15,12 @@ import java.security.Key;
 @Component
 public class JwtUtil {
 
-    //private final String SECRET_KEY = "mySecretKey"; // 👉 환경변수나 yml로 빼는 게 보안상 좋아!
-    private final Key SECRET_KEY = Keys.secretKeyFor(SignatureAlgorithm.HS256);
+    //private final String SECRET_KEY = "mySecretKey"; //  환경변수나 yml로 빼는 게 보안상 좋음
+    private final Key SECRET_KEY;
 
+    public JwtUtil(@Value("${jwt.secret}") String secret) {
+        this.SECRET_KEY = Keys.hmacShaKeyFor(secret.getBytes());
+    }
     // 토큰 생성
     public String generateToken(String nickname) {
         return Jwts.builder()
@@ -53,8 +58,9 @@ public class JwtUtil {
     }
 
     private Claims getAllClaimsFromToken(String token) {
-        return Jwts.parser()
+        return Jwts.parserBuilder()
                 .setSigningKey(SECRET_KEY)
+                .build()
                 .parseClaimsJws(token)
                 .getBody();
     }

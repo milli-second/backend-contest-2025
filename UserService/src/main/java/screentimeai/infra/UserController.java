@@ -18,7 +18,6 @@ public class UserController {
     private final JwtUtil jwtUtil;
 
     public UserController(UserService userService,JwtUtil jwtUtil) {
-
         this.userService = userService;
         this.jwtUtil = jwtUtil;
 
@@ -47,6 +46,8 @@ public class UserController {
     
     @PostMapping("/logout")
     public String logout(@RequestParam String nickname) {
+        System.out.println("✅ User logout start: " + nickname);
+
         userService.logout(nickname);
         return "User logged out: " + nickname;
     }

@@ -6,13 +6,10 @@ import java.util.Base64;
 
 @Component
 public class KafkaDebugConsumer {
-
-
     @KafkaListener(topics = "user_login", groupId = "debug")
     public void listenLogin(String message) {
         System.out.println("📥 [user_login] Received raw: " + message);
     }
-
 
     @KafkaListener(topics = "user_signup", groupId = "debug")
     public void listenSignup(String message) {

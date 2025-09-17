@@ -1,21 +1,22 @@
 package screentimeai.domain;
 
-import lombok.*;
+import lombok.Data;
+import lombok.ToString;
 import screentimeai.infra.AbstractEvent;
 
-//<<< DDD / Domain Event
 @Data
 @ToString
 public class AccountDeactivated extends AbstractEvent {
-
     private Long id;
+    private String nickname;
 
-    public AccountDeactivated(User aggregate) {
-        super(aggregate);
+    public AccountDeactivated(User user) {
+        super(user);
+        this.id = user.getId();
+        this.nickname = user.getNickname();
     }
 
     public AccountDeactivated() {
         super();
     }
 }
-//>>> DDD / Domain Event

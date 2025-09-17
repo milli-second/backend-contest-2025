@@ -20,6 +20,8 @@ public class User {
     private Long id;
     private String nickname;
     private String password;
+    private boolean active = true;  //  탈퇴 여부 표시
+
 
     @Transient
     private final List<Object> domainEvents = new ArrayList<>();
@@ -36,10 +38,26 @@ public class User {
         this.domainEvents.add(new LoggedIn(this));
     }
 
-
     public void logout() {
         this.domainEvents.add(new LoggedOut(this));
     }
+
+    public void changePassword(String oldPassword, String newPassword, PasswordEncoder encoder) {
+        if (!encoder.matches(oldPassword, this.password)) {
+            throw new IllegalArgumentException("❌ 기존 비밀번호가 일치하지 않습니다");
+        }
+        this.password = encoder.encode(newPassword);
+        this.domainEvents.add(new PasswordChanged(this));
+    }
+
+    public void deactivate() {
+        if (!this.active) {
+            throw new IllegalStateException("❌ 이미 탈퇴된 계정입니다.");
+        }
+        this.active = false;
+        this.domainEvents.add(new AccountDeactivated(this));
+    }
+
 
     @DomainEvents
     public Collection<Object> events() {

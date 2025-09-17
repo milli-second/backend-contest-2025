@@ -31,4 +31,16 @@ public class UserEventHandler {
         System.out.println("🎯 Handling SignedUp event: " + event.getNickname());
         eventPublisher.publish("eventProducer-out-0", event, "SignedUp");
     }
+
+    @TransactionalEventListener
+    public void handle(PasswordChanged event) {
+        System.out.println("🎯Handling SignedUp event: " + event.getNickname());
+        eventPublisher.publish("eventProducer-out-3", event, "PasswordChanged");
+    }
+
+    @TransactionalEventListener
+    public void handle(AccountDeactivated event) {
+        System.out.println("🎯Handling SignedUp event: " + event.getNickname());
+        eventPublisher.publish("eventProducer-out-4", event, "PasswordChanged");
+    }
 }

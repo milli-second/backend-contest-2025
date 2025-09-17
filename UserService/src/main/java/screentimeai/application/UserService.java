@@ -50,6 +50,28 @@ public class UserService {
         userRepository.save(user); // 👉 이벤트 발행을 트리거
         System.out.println("✅ User logout completed: " + nickname);
     }
+
+    public void changePassword(String nickname, String oldPassword, String newPassword) {
+        User user = userRepository.findByNickname(nickname)
+                .orElseThrow(() -> new IllegalArgumentException("❌ 사용자 없음: " + nickname));
+
+        user.changePassword(oldPassword, newPassword, passwordEncoder);
+
+        userRepository.save(user); // 👉 이벤트 발행됨
+        System.out.println("✅ Password changed for user: " + nickname);
+    }
+
+    public void deactivateAccount(String nickname) {
+        User user = userRepository.findByNickname(nickname)
+                .orElseThrow(() -> new IllegalArgumentException("❌ 사용자 없음: " + nickname));
+
+        user.deactivate();
+
+        userRepository.save(user); // 👉 이벤트 발행 트리거
+        System.out.println("🗑️ Account deactivated: " + nickname);
+    }
+
+
 }
 
 

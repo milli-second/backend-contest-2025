@@ -50,6 +50,13 @@ spring:
         eventProducer-out-2:
           destination: user_login
           contentType: application/json
+        eventProducer-out-3:
+          destination: user_password_changed
+          content-type: application/json
+        eventProducer-out-4:
+            destination: user_deactivated
+            content-type: application/json
+
 logging:
   level:
     org.hibernate.type: trace

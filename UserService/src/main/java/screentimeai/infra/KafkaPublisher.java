@@ -44,6 +44,7 @@ public class KafkaPublisher {
         System.out.println("📤 Kafka published logout: " + message);
     }
 
+
     @EventListener
     public void handleDeactivated(AccountDeactivated event) {
         String message = String.format("User{id=%d,nickname=%s,action=account-deactivated}",

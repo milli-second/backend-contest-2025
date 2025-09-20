@@ -64,5 +64,5 @@ logging:
 
 
 jwt:
-  secret: my-super-long-secret-key-which-should-be-at-least-32-chars
+  secret: e7b3c9a1f4d29c6b1f8a2d7e9f3b4c5d2a9ec17f88d0a34b6e2f91a7c5d8e4f1
 

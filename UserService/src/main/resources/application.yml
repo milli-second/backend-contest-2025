@@ -7,6 +7,7 @@ spring:
 
   datasource:
     url: jdbc:postgresql://localhost:5433/userservice
+    #url: jdbc:postgresql://210.178.40.108:5432/userservice
     driver-class-name: org.postgresql.Driver
     username: postgres
     password: postgres
@@ -62,7 +63,7 @@ logging:
     org.hibernate.type: trace
     org.springframework.kafka: debug
 
-
 jwt:
-  secret: e7b3c9a1f4d29c6b1f8a2d7e9f3b4c5d2a9ec17f88d0a34b6e2f91a7c5d8e4f1
+  secret: ${JWT_SECRET_KEY:my-default-secret7e9f3b4c5d7c5d8e4f12a9ec17f1f4d29c6b1f8a2}
+
 

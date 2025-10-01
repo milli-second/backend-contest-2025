@@ -34,10 +34,6 @@ public class UserService {
         user.login(rawPassword, passwordEncoder);
 
         userRepository.save(user); // 👉 이벤트 발행을 트리거
-//        if (user.getId() != null) {
-//            user.markSignedUp();
-//        }
-
         System.out.println("✅ User login completed: " + nickname);
         return user;
     }

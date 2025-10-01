@@ -21,7 +21,7 @@ public class User {
     private String nickname;
     private String password;
     private boolean active = true;  //  탈퇴 여부 표시
-
+    private String category = null;//초기에는 null처리
 
     @Transient
     private final List<Object> domainEvents = new ArrayList<>();

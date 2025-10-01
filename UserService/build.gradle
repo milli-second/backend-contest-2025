@@ -34,8 +34,9 @@ dependencies {
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5' // Jackson 기반 파서
 
     implementation 'org.springframework.boot:spring-boot-starter-security'
+    //implementation 'com.bucket4j:bucket4j-core:8.3.0'
 
-
+    implementation("com.bucket4j:bucket4j-core:8.6.0")
     //implementation 'org.postgresql:postgresql:42.7.3'
     runtimeOnly 'org.postgresql:postgresql:42.7.3'
 

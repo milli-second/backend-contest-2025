@@ -1,41 +1,35 @@
 package screentimeai.infra;
 
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import screentimeai.application.UserService;
 import screentimeai.domain.User;
-import screentimeai.infra.security.JwtUtil;
+import screentimeai.config.security.JwtUtil;
+import screentimeai.infra.dto.LoginRequest;
+import screentimeai.infra.dto.SignupRequest;
 
 import java.util.Map;
 
-//<<< Clean Arch / Inbound Adaptor
-
 @RestController
-@RequestMapping(value="/users")
+@RequestMapping(value="/api/v1/users")
 public class UserController {
-
     private final UserService userService;
     private final JwtUtil jwtUtil;
 
-    public UserController(UserService userService,JwtUtil jwtUtil) {
+    public UserController(UserService userService, JwtUtil jwtUtil) {
         this.userService = userService;
         this.jwtUtil = jwtUtil;
-
     }
+
     @GetMapping("/test")
     public String test() {
         return "UserService is running!";
     }
-    
-    /*@PostMapping("/login")
-    public String login(@RequestParam String nickname, @RequestParam String password) {
-        userService.login(nickname, password);
-        return "User logged in: " + nickname;
-    }*/
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestParam String nickname, @RequestParam String password) {
-        User user = userService.login(nickname, password);
+    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request) {
+        User user = userService.login(request.getNickname(), request.getPassword());
         String token = jwtUtil.generateToken(user.getNickname());
 
         return ResponseEntity.ok(Map.of(
@@ -43,20 +37,17 @@ public class UserController {
                 "nickname", user.getNickname()
         ));
     }
-    
-    @PostMapping("/logout")
-    public String logout(@RequestParam String nickname) {
-        System.out.println("✅ User logout start: " + nickname);
 
+    @PostMapping("/logout")
+    public String logout(@RequestBody Map<String, String> body) {
+        String nickname = body.get("nickname");
         userService.logout(nickname);
         return "User logged out: " + nickname;
     }
-    
+
     @PostMapping("/signup")
-    public String signup(@RequestParam String nickname, @RequestParam String password) {
-        System.out.println("📥 nickname raw param: [" + nickname + "]");
-        userService.signup(nickname,password);
-        return "User signed up: " + nickname;
+    public String signup(@Valid @RequestBody SignupRequest request) {
+        userService.signup(request.getNickname(), request.getPassword());
+        return "User signed up: " + request.getNickname();
     }
 }
-//>>> Clean Arch / Inbound Adaptor

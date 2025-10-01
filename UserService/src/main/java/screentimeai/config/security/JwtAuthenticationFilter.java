@@ -1,4 +1,4 @@
-package screentimeai.infra.security;
+package screentimeai.config.security;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;

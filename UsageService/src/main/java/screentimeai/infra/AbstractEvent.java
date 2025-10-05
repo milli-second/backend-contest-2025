@@ -3,20 +3,17 @@ package screentimeai.infra;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.BeanUtils;
-import org.springframework.messaging.MessageChannel;
-import org.springframework.messaging.MessageHeaders;
-import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.util.MimeTypeUtils;
 import screentimeai.UsageserviceApplication;
-import screentimeai.config.kafka.KafkaProcessor;
+import screentimeai.infra.kafka.EventPublisher;
 
 //<<< Clean Arch / Outbound Adaptor
 public class AbstractEvent {
 
-    String eventType;
-    Long timestamp;
+    private String eventType;
+    private Long timestamp;
 
     public AbstractEvent(Object aggregate) {
         this();
@@ -32,21 +29,9 @@ public class AbstractEvent {
         /**
          * spring streams 방식
          */
-        KafkaProcessor processor = UsageserviceApplication.applicationContext.getBean(
-            KafkaProcessor.class
-        );
-        MessageChannel outputChannel = processor.outboundTopic();
-
-        outputChannel.send(
-            MessageBuilder
-                .withPayload(this)
-                .setHeader(
-                    MessageHeaders.CONTENT_TYPE,
-                    MimeTypeUtils.APPLICATION_JSON
-                )
-                .setHeader("type", getEventType())
-                .build()
-        );
+        EventPublisher publisher =
+                UsageserviceApplication.applicationContext.getBean(EventPublisher.class);
+        publisher.publishScreenDataEvent("screenData-out-0", this);
     }
 
     public void publishAfterCommit() {

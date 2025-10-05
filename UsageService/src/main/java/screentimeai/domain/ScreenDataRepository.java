@@ -1,24 +1,19 @@
 package screentimeai.domain;
 
-import java.util.Date;
-import java.util.List;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.repository.PagingAndSortingRepository;
 import org.springframework.data.rest.core.annotation.RepositoryRestResource;
+import org.springframework.stereotype.Repository;
 import screentimeai.domain.*;
 
 //<<< PoEAA / Repository
-@RepositoryRestResource(
-    collectionResourceRel = "screenData",
-    path = "screenData"
-)
+//@RepositoryRestResource(
+//    collectionResourceRel = "screenData",
+//    path = "screenData"
+//)
+@Repository
 public interface ScreenDataRepository
-    extends PagingAndSortingRepository<ScreenData, Long> {
-    @Query(
-        value = "select screenData " +
-        "from ScreenData screenData " +
-        "where(:userId is null or screenData.userId = :userId)"
-    )
-    ScreenData viewUsageReport(Integer userId);
+    extends JpaRepository<ScreenData, Long> {
+        // 중복 체크: subject_id + timestamp
+    boolean existsBySubjectIdAndTimestampEpochMs(String subjectId, Long timestampEpochMs);
 }

@@ -12,10 +12,7 @@ import screentimeai.domain.events.ScreenDataSavedEvent;
 import screentimeai.dto.ScreenDataRequest;
 
 import java.sql.Timestamp;
-import java.time.Duration;
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
+import java.time.*;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 
@@ -57,23 +54,37 @@ public class ScreenDataService {
         return saved.size();
     }
 
+    public List<Map<String, Object>> getTimeSlotUsageForTodayAndYesterday(String subjectId) {
+        List<Map<String, Object>> resultList = new ArrayList<>();
 
-    public Map<String, Long> getTimeSlotUsage(String subjectId) {
-        long now = System.currentTimeMillis();
-        long from = now - 24 * 60 * 60 * 1000L;
+        LocalDate today = LocalDate.now();
+        LocalDate yesterday = today.minusDays(1);
+
+        resultList.add(getTimeSlotUsage(subjectId, today));
+        resultList.add(getTimeSlotUsage(subjectId, yesterday));
+
+        return resultList;
+    }
+
+    public Map<String, Object> getTimeSlotUsage(String subjectId, LocalDate date) {
+        ZonedDateTime startOfDay = date.atStartOfDay(ZoneId.systemDefault());
+        ZonedDateTime endOfDay = startOfDay.plusDays(1).minusNanos(1);
+
+        long from = startOfDay.toInstant().toEpochMilli();
+        long to = endOfDay.toInstant().toEpochMilli();
 
         // 2. 대상 이벤트 조회 (Foreground, Background)
         List<ScreenData> events = repository.findBySubjectIdAndTypeInAndTimestampEpochMsBetweenOrderByTimestampEpochMs(
                 subjectId,
                 List.of("MOVE_TO_FOREGROUND", "MOVE_TO_BACKGROUND"),
                 from,
-                now
+                to
         );
 
-        System.out.println("조회된 이벤트 개수: " + events.size());
-        for (ScreenData e : events) {
-            System.out.println(e.getType() + " | " + e.getPackageName() + " | " + e.getTimestampEpochMs());
-        }
+//        System.out.println("조회된 이벤트 개수: " + events.size());
+//        for (ScreenData e : events) {
+//            System.out.println(e.getType() + " | " + e.getPackageName() + " | " + e.getTimestampEpochMs());
+//        }
 
         List<Pair<ScreenData, ScreenData>> sessionPairs = new ArrayList<>();
         Deque<ScreenData> foregroundStack = new ArrayDeque<>();
@@ -88,26 +99,25 @@ public class ScreenDataService {
             }
         }
 
-
         // Foreground만 남아있다면 현재 시간까지 세션으로 간주
         while (!foregroundStack.isEmpty()) {
             ScreenData fg = foregroundStack.pop();
-            sessionPairs.add(Pair.of(fg, ScreenData.withTimestampEpoch(now)));
+            sessionPairs.add(Pair.of(fg, ScreenData.withTimestampEpoch(to)));
         }
 
-        // 4. 시간대별 duration(초)을 분 단위로 누적
+        //시간대별 duration(초)을 분 단위로 누적
         Map<String, Long> timeSlotMap = new LinkedHashMap<>();
         timeSlotMap.put("야간(00-06시)", 0L);
         timeSlotMap.put("오전(06-12시)", 0L);
         timeSlotMap.put("오후(12-18시)", 0L);
         timeSlotMap.put("저녁(18-24시)", 0L);
 
-        System.out.println("=== 세션 쌍 목록 ===");
-        for (Pair<ScreenData, ScreenData> session : sessionPairs) {
-            System.out.println("▶ " + session.getFirst().getPackageName()
-                    + ": " + session.getFirst().getTimestampEpochMs()
-                    + " ~ " + session.getSecond().getTimestampEpochMs());
-        }
+//        System.out.println("=== 세션 쌍 목록 ===");
+//        for (Pair<ScreenData, ScreenData> session : sessionPairs) {
+//            System.out.println("▶ " + session.getFirst().getPackageName()
+//                    + ": " + session.getFirst().getTimestampEpochMs()
+//                    + " ~ " + session.getSecond().getTimestampEpochMs());
+//        }
 
         for (Pair<ScreenData, ScreenData> session : sessionPairs) {
             LocalDateTime start = Instant.ofEpochMilli(session.getFirst().getTimestampEpochMs())
@@ -119,11 +129,15 @@ public class ScreenDataService {
             if (durationSec <= 0) continue;
 
             String slot = getTimeSlot(start);
-            System.out.println("▶ [" + slot + "] " + durationSec + "초 (" + durationSec / 60 + "분)");
+            //System.out.println("▶ [" + slot + "] " + durationSec + "초 (" + durationSec / 60 + "분)");
             timeSlotMap.put(slot, timeSlotMap.get(slot) + durationSec / 60);
         }
 
-        return timeSlotMap;
+        Map<String, Object> resultMap = new LinkedHashMap<>();
+        resultMap.put("date", date.toString());
+        resultMap.putAll(timeSlotMap);
+
+        return resultMap;
     }
 
     private String getTimeSlot(LocalDateTime time) {

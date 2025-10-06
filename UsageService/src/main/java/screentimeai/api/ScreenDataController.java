@@ -27,8 +27,8 @@ public class ScreenDataController {
     }
 
     @GetMapping("/time")
-    public ResponseEntity<Map<String, Long>> getTimeSlotUsage(@RequestParam String subjectId) {
-        Map<String, Long> result = service.getTimeSlotUsage(subjectId);
+    public ResponseEntity<List<Map<String, Object>>> getTimeSlotUsage(@RequestParam String subjectId) {
+        List<Map<String, Object>> result = service.getTimeSlotUsageForTodayAndYesterday(subjectId);
         return ResponseEntity.ok(result);
     }
 }

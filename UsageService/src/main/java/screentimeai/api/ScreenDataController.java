@@ -31,5 +31,11 @@ public class ScreenDataController {
         List<Map<String, Object>> result = service.getTimeSlotUsageForTodayAndYesterday(userId);
         return ResponseEntity.ok(result);
     }
+
+    @GetMapping("/top3")
+    public ResponseEntity<List<Map<String, Object>>> getTop3Apps(@RequestParam String userId) {
+        List<Map<String, Object>> result = service.getTop3UsedApps(userId);
+        return ResponseEntity.ok(result);
+    }
 }
 //>>> Clean Arch / Inbound Adaptor

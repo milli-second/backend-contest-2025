@@ -10,6 +10,7 @@ import screentimeai.domain.ScreenData;
 import screentimeai.domain.ScreenDataRepository;
 import screentimeai.domain.events.ScreenDataSavedEvent;
 import screentimeai.dto.ScreenDataRequest;
+import java.util.stream.Collectors;
 
 import java.sql.Timestamp;
 import java.time.*;
@@ -73,7 +74,7 @@ public class ScreenDataService {
         long from = startOfDay.toInstant().toEpochMilli();
         long to = endOfDay.toInstant().toEpochMilli();
 
-        // 2. 대상 이벤트 조회 (Foreground, Background)
+        //대상 이벤트 조회 (Foreground, Background)
         List<ScreenData> events = repository.findBySubjectIdAndTypeInAndTimestampEpochMsBetweenOrderByTimestampEpochMs(
                 subjectId,
                 List.of("MOVE_TO_FOREGROUND", "MOVE_TO_BACKGROUND"),
@@ -147,4 +148,68 @@ public class ScreenDataService {
         if (hour < 18) return "오후(12-18시)";
         return "저녁(18-24시)";
     }
+
+    //top3
+    public List<Map<String, Object>> getTop3UsedApps(String subjectId) {
+        long now = System.currentTimeMillis();
+        long from = now - 24 * 60 * 60 * 1000L;
+
+        List<ScreenData> events = repository.findBySubjectIdAndTypeInAndTimestampEpochMsBetweenOrderByTimestampEpochMs(
+                subjectId,
+                List.of("MOVE_TO_FOREGROUND", "MOVE_TO_BACKGROUND"),
+                from,
+                now
+        );
+
+        // 앱별 세션 저장
+        Map<String, List<Pair<Long, Long>>> appSessions = new HashMap<>();
+        Map<String, Deque<ScreenData>> foregroundStacks = new HashMap<>();
+
+        for (ScreenData event : events) {
+            String app = event.getName();
+            foregroundStacks.putIfAbsent(app, new ArrayDeque<>());
+
+            if (event.getType().equals("MOVE_TO_FOREGROUND")) {
+                foregroundStacks.get(app).push(event);
+            } else if (event.getType().equals("MOVE_TO_BACKGROUND") && !foregroundStacks.get(app).isEmpty()) {
+                ScreenData fg = foregroundStacks.get(app).pop();
+                appSessions.computeIfAbsent(app, k -> new ArrayList<>())
+                        .add(Pair.of(fg.getTimestampEpochMs(), event.getTimestampEpochMs()));
+            }
+        }
+
+        // 아직 종료되지 않은 세션 처리 (현재 시간까지)
+        for (Map.Entry<String, Deque<ScreenData>> entry : foregroundStacks.entrySet()) {
+            String app = entry.getKey();
+            Deque<ScreenData> stack = entry.getValue();
+            while (!stack.isEmpty()) {
+                ScreenData fg = stack.pop();
+                appSessions.computeIfAbsent(app, k -> new ArrayList<>())
+                        .add(Pair.of(fg.getTimestampEpochMs(), now));
+            }
+        }
+
+        // 앱별 총 사용 시간 계산
+        Map<String, Long> appUsageSeconds = new HashMap<>();
+        for (Map.Entry<String, List<Pair<Long, Long>>> entry : appSessions.entrySet()) {
+            long totalSec = 0;
+            for (Pair<Long, Long> session : entry.getValue()) {
+                totalSec += (session.getSecond() - session.getFirst()) / 1000/ 60;
+            }
+            appUsageSeconds.put(entry.getKey(), totalSec);
+        }
+
+        //top3 정렬
+        return appUsageSeconds.entrySet().stream()
+                .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
+                .limit(3)
+                .map(e -> {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("name", e.getKey());
+                    map.put("durationSec", e.getValue());
+                    return map;
+                })
+                .collect(Collectors.toList());
+    }
+
 }

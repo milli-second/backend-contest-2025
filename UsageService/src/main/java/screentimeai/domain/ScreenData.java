@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.Data;
 import screentimeai.UsageserviceApplication;
 
+import java.util.UUID;
+
 @Entity
 @Table(name = "ScreenData_table")
 @Data
@@ -50,11 +52,11 @@ public class ScreenData {
 //        dailyAnalysisDataPrepared.publishAfterCommit();
 //    }
 
-    public static ScreenDataRepository repository() {
-        ScreenDataRepository screenDataRepository = UsageserviceApplication.applicationContext.getBean(
-            ScreenDataRepository.class
-        );
-        return screenDataRepository;
-    }
+//    public static ScreenDataRepository repository() {
+//        ScreenDataRepository screenDataRepository = UsageserviceApplication.applicationContext.getBean(
+//            ScreenDataRepository.class
+//        );
+//        return screenDataRepository;
+//    }
 }
 //>>> DDD / Aggregate Root

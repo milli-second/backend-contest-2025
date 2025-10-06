@@ -9,7 +9,7 @@ import java.util.UUID;
 public class ScreenDataRequest {
 
     @JsonProperty("subject_id")
-    private String subjectId;//1
+    private String subjectId; //1
 
     private long timestamp; //1769045960495069
 

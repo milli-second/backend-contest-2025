@@ -13,7 +13,7 @@ import java.util.Map;
 //<<< Clean Arch / Inbound Adaptor
 
 @RestController
-@RequestMapping(value="/screenData")
+@RequestMapping(value="/api/screenData")
 @RequiredArgsConstructor
 @Transactional
 public class ScreenDataController {
@@ -26,9 +26,9 @@ public class ScreenDataController {
         return ResponseEntity.ok("✅ Saved " + savedCount + " new records");
     }
 
-    @GetMapping("/time")
-    public ResponseEntity<List<Map<String, Object>>> getTimeSlotUsage(@RequestParam String subjectId) {
-        List<Map<String, Object>> result = service.getTimeSlotUsageForTodayAndYesterday(subjectId);
+    @GetMapping("/timePattern")
+    public ResponseEntity<List<Map<String, Object>>> getTimeSlotUsage(@RequestParam String userId) {
+        List<Map<String, Object>> result = service.getTimeSlotUsageForTodayAndYesterday(userId);
         return ResponseEntity.ok(result);
     }
 }

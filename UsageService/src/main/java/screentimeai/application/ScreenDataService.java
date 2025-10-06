@@ -55,6 +55,70 @@ public class ScreenDataService {
         return saved.size();
     }
 
+    //주마다 사용패턴
+    public List<Map<String, Object>> getWeeklyUsageTrends(String subjectId) {
+        List<Map<String, Object>> resultList = new ArrayList<>();
+
+        // 오늘 날짜 기준
+        LocalDate today = LocalDate.now();
+        DayOfWeek todayDayOfWeek = today.getDayOfWeek();
+
+        // 이번주 월요일
+        LocalDate thisWeekMonday = today.minusDays(todayDayOfWeek.getValue() - DayOfWeek.MONDAY.getValue());
+
+        // 지난주 월요일
+        LocalDate lastWeekMonday = thisWeekMonday.minusWeeks(1);
+
+        // 시작 ~ 끝 날짜
+        LocalDate startDate = lastWeekMonday;
+        LocalDate endDate = today.minusDays(1);;
+
+        for (LocalDate date = startDate; !date.isAfter(endDate); date = date.plusDays(1)) {
+            long from = date.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
+            long to = date.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli() - 1;
+
+            // 하루치 Foreground, Background 이벤트 조회
+            List<ScreenData> events = repository.findBySubjectIdAndTypeInAndTimestampEpochMsBetweenOrderByTimestampEpochMs(
+                    subjectId,
+                    List.of("MOVE_TO_FOREGROUND", "MOVE_TO_BACKGROUND"),
+                    from,
+                    to
+            );
+
+            // 세션 파싱
+            List<Pair<ScreenData, ScreenData>> sessionPairs = new ArrayList<>();
+            Deque<ScreenData> fgStack = new ArrayDeque<>();
+            for (ScreenData event : events) {
+                if ("MOVE_TO_FOREGROUND".equals(event.getType())) {
+                    fgStack.push(event);
+                } else if ("MOVE_TO_BACKGROUND".equals(event.getType()) && !fgStack.isEmpty()) {
+                    sessionPairs.add(Pair.of(fgStack.pop(), event));
+                }
+            }
+
+            while (!fgStack.isEmpty()) {
+                ScreenData fg = fgStack.pop();
+                sessionPairs.add(Pair.of(fg, ScreenData.withTimestampEpoch(to)));
+            }
+
+            // 하루 총 사용 시간 계산 (초 → 분 변환)
+            long totalSec = 0;
+            for (Pair<ScreenData, ScreenData> session : sessionPairs) {
+                long duration = (session.getSecond().getTimestampEpochMs() - session.getFirst().getTimestampEpochMs()) / 1000;
+                if (duration > 0) totalSec += duration;
+            }
+
+            Map<String, Object> resultMap = new LinkedHashMap<>();
+            resultMap.put("date", date.toString());
+            resultMap.put("minutes", totalSec / 60);
+            resultList.add(resultMap);
+        }
+
+        return resultList;
+    }
+
+
+    //시간대별 사용량
     public List<Map<String, Object>> getTimeSlotUsageForTodayAndYesterday(String subjectId) {
         List<Map<String, Object>> resultList = new ArrayList<>();
 
@@ -206,7 +270,7 @@ public class ScreenDataService {
                 .map(e -> {
                     Map<String, Object> map = new HashMap<>();
                     map.put("name", e.getKey());
-                    map.put("durationSec", e.getValue());
+                    map.put("minutes", e.getValue());
                     return map;
                 })
                 .collect(Collectors.toList());

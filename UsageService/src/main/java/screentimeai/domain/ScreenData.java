@@ -43,6 +43,13 @@ public class ScreenData {
     @Column(name = "type", nullable = false)
     private String type;
 
+    public static ScreenData withTimestampEpoch(long timestampEpochMs) {
+        ScreenData data = new ScreenData();
+        data.setTimestampEpochMs(timestampEpochMs);
+        return data;
+    }
+
+
 
 //    @PostPersist
 //    public void onPostPersist() {

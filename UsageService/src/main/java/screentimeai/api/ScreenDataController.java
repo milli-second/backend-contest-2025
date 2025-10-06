@@ -3,14 +3,12 @@ package screentimeai.api;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+ㅎimport org.springframework.web.bind.annotation.*;
 import screentimeai.application.ScreenDataService;
 import screentimeai.dto.ScreenDataRequest;
 
 import java.util.List;
+import java.util.Map;
 
 //<<< Clean Arch / Inbound Adaptor
 
@@ -26,6 +24,12 @@ public class ScreenDataController {
     public ResponseEntity<String> saveScreenData(@RequestBody List<ScreenDataRequest> body) {
         int savedCount = service.saveAll(body);
         return ResponseEntity.ok("✅ Saved " + savedCount + " new records");
+    }
+
+    @GetMapping("/time")
+    public ResponseEntity<Map<String, Long>> getTimeSlotUsage(@RequestParam String subjectId) {
+        Map<String, Long> result = service.getTimeSlotUsage(subjectId);
+        return ResponseEntity.ok(result);
     }
 }
 //>>> Clean Arch / Inbound Adaptor

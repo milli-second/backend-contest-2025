@@ -3,6 +3,7 @@ package screentimeai.application;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.util.Pair;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import screentimeai.domain.ScreenData;
@@ -10,8 +11,13 @@ import screentimeai.domain.ScreenDataRepository;
 import screentimeai.domain.events.ScreenDataSavedEvent;
 import screentimeai.dto.ScreenDataRequest;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.sql.Timestamp;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -49,5 +55,82 @@ public class ScreenDataService {
         eventPublisher.publishEvent(new ScreenDataSavedEvent(saved));
 
         return saved.size();
+    }
+
+
+    public Map<String, Long> getTimeSlotUsage(String subjectId) {
+        long now = System.currentTimeMillis();
+        long from = now - 24 * 60 * 60 * 1000L;
+
+        // 2. 대상 이벤트 조회 (Foreground, Background)
+        List<ScreenData> events = repository.findBySubjectIdAndTypeInAndTimestampEpochMsBetweenOrderByTimestampEpochMs(
+                subjectId,
+                List.of("MOVE_TO_FOREGROUND", "MOVE_TO_BACKGROUND"),
+                from,
+                now
+        );
+
+        System.out.println("조회된 이벤트 개수: " + events.size());
+        for (ScreenData e : events) {
+            System.out.println(e.getType() + " | " + e.getPackageName() + " | " + e.getTimestampEpochMs());
+        }
+
+        List<Pair<ScreenData, ScreenData>> sessionPairs = new ArrayList<>();
+        Deque<ScreenData> foregroundStack = new ArrayDeque<>();
+
+
+        for (ScreenData event : events) {
+            if (event.getType().equals("MOVE_TO_FOREGROUND")) {
+                foregroundStack.push(event);  // 시작 저장
+            } else if (event.getType().equals("MOVE_TO_BACKGROUND") && !foregroundStack.isEmpty()) {
+                ScreenData foreground = foregroundStack.pop();
+                sessionPairs.add(Pair.of(foreground, event));
+            }
+        }
+
+
+        // Foreground만 남아있다면 현재 시간까지 세션으로 간주
+        while (!foregroundStack.isEmpty()) {
+            ScreenData fg = foregroundStack.pop();
+            sessionPairs.add(Pair.of(fg, ScreenData.withTimestampEpoch(now)));
+        }
+
+        // 4. 시간대별 duration(초)을 분 단위로 누적
+        Map<String, Long> timeSlotMap = new LinkedHashMap<>();
+        timeSlotMap.put("야간(00-06시)", 0L);
+        timeSlotMap.put("오전(06-12시)", 0L);
+        timeSlotMap.put("오후(12-18시)", 0L);
+        timeSlotMap.put("저녁(18-24시)", 0L);
+
+        System.out.println("=== 세션 쌍 목록 ===");
+        for (Pair<ScreenData, ScreenData> session : sessionPairs) {
+            System.out.println("▶ " + session.getFirst().getPackageName()
+                    + ": " + session.getFirst().getTimestampEpochMs()
+                    + " ~ " + session.getSecond().getTimestampEpochMs());
+        }
+
+        for (Pair<ScreenData, ScreenData> session : sessionPairs) {
+            LocalDateTime start = Instant.ofEpochMilli(session.getFirst().getTimestampEpochMs())
+                    .atZone(ZoneId.systemDefault()).toLocalDateTime();
+            LocalDateTime end = Instant.ofEpochMilli(session.getSecond().getTimestampEpochMs())
+                    .atZone(ZoneId.systemDefault()).toLocalDateTime();
+
+            long durationSec = Duration.between(start, end).getSeconds();
+            if (durationSec <= 0) continue;
+
+            String slot = getTimeSlot(start);
+            System.out.println("▶ [" + slot + "] " + durationSec + "초 (" + durationSec / 60 + "분)");
+            timeSlotMap.put(slot, timeSlotMap.get(slot) + durationSec / 60);
+        }
+
+        return timeSlotMap;
+    }
+
+    private String getTimeSlot(LocalDateTime time) {
+        int hour = time.getHour();
+        if (hour < 6) return "야간(00-06시)";
+        if (hour < 12) return "오전(06-12시)";
+        if (hour < 18) return "오후(12-18시)";
+        return "저녁(18-24시)";
     }
 }

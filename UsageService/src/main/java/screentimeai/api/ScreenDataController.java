@@ -3,7 +3,7 @@ package screentimeai.api;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-ㅎimport org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.*;
 import screentimeai.application.ScreenDataService;
 import screentimeai.dto.ScreenDataRequest;
 

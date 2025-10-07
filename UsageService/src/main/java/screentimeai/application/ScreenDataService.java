@@ -146,10 +146,10 @@ public class ScreenDataService {
                 to
         );
 
-        System.out.println("조회된 이벤트 개수: " + events.size());
-        for (ScreenData e : events) {
-            System.out.println(e.getType() + " | " + e.getPackageName() + " | " + e.getTimestampEpochMs());
-        }
+//        System.out.println("조회된 이벤트 개수: " + events.size());
+//        for (ScreenData e : events) {
+//            System.out.println(e.getType() + " | " + e.getPackageName() + " | " + e.getTimestampEpochMs());
+//        }
 
         List<Pair<ScreenData, ScreenData>> sessionPairs = new ArrayList<>();
         Deque<ScreenData> foregroundStack = new ArrayDeque<>();
@@ -177,12 +177,12 @@ public class ScreenDataService {
         timeSlotMap.put("오후(12-18시)", 0L);
         timeSlotMap.put("저녁(18-24시)", 0L);
 
-        System.out.println("=== 세션 쌍 목록 ===");
-        for (Pair<ScreenData, ScreenData> session : sessionPairs) {
-            System.out.println("▶ " + session.getFirst().getPackageName()
-                    + ": " + session.getFirst().getTimestampEpochMs()
-                    + " ~ " + session.getSecond().getTimestampEpochMs());
-        }
+//        System.out.println("=== 세션 쌍 목록 ===");
+//        for (Pair<ScreenData, ScreenData> session : sessionPairs) {
+//            System.out.println("▶ " + session.getFirst().getPackageName()
+//                    + ": " + session.getFirst().getTimestampEpochMs()
+//                    + " ~ " + session.getSecond().getTimestampEpochMs());
+//        }
 
         for (Pair<ScreenData, ScreenData> session : sessionPairs) {
             LocalDateTime start = Instant.ofEpochMilli(session.getFirst().getTimestampEpochMs())
@@ -194,7 +194,7 @@ public class ScreenDataService {
             if (durationSec <= 0) continue;
 
             String slot = getTimeSlot(start);
-            System.out.println("▶ [" + slot + "] " + durationSec + "초 (" + durationSec / 60 + "분)");
+//            System.out.println("▶ [" + slot + "] " + durationSec + "초 (" + durationSec / 60 + "분)");
             timeSlotMap.put(slot, timeSlotMap.get(slot) + durationSec / 60);
         }
 
@@ -270,15 +270,95 @@ public class ScreenDataService {
                 .map(e -> {
                     Map<String, Object> map = new HashMap<>();
                     map.put("name", e.getKey());
-                    map.put("minutes", e.getValue());
+                    map.put("usage_minutes", e.getValue());
                     return map;
                 })
                 .collect(Collectors.toList());
     }
 
     //4. 사용 카테고리 분석
+    @Transactional(readOnly = true)
     public List<Map<String, Object>> getAppCategoryStatsForUser(String subjectId) {
-        return repository.getCategoryStatsLast24Hours(subjectId);
+        long toMs = System.currentTimeMillis();
+        long fromMs = toMs - 24L * 60 * 60 * 1000;
+
+        List<Map<String, Object>> rows =
+                repository.getCategoryStatsLast24Hours(subjectId, fromMs, toMs);
+        if (rows == null || rows.isEmpty()) return List.of();
+
+        long totalMinutes = rows.stream()
+                .mapToLong(r -> ((Number) r.get("usage_minutes")).longValue())
+                .sum();
+        if (totalMinutes <= 0) return List.of();
+
+        // minutes DESC
+        rows.sort((a, b) -> Long.compare(
+                ((Number) b.get("usage_minutes")).longValue(),
+                ((Number) a.get("usage_minutes")).longValue()
+        ));
+
+        if (rows.size() <= 4) {
+            // 카테고리 ≤ 4면 그대로 반환(기타가 포함될 수 있음)
+            return rows.stream()
+                    .map(r -> toRow(
+                            String.valueOf(r.get("category")),
+                            ((Number) r.get("usage_minutes")).longValue(),
+                            totalMinutes))
+                    .toList();
+        }
+
+        // 카테고리 > 4면 Top4 + 나머지 합산 → 기타
+        List<Map<String, Object>> top4 = new ArrayList<>();
+        long othersMinutes = 0;
+
+        for (int i = 0; i < rows.size(); i++) {
+            String cat = String.valueOf(rows.get(i).get("category"));
+            long minutes = ((Number) rows.get(i).get("usage_minutes")).longValue();
+
+            if (i < 4) {
+                top4.add(toRow(cat, minutes, totalMinutes));
+            } else {
+                othersMinutes += minutes;
+            }
+        }
+
+        if (othersMinutes > 0) {
+            // 만약 Top4 안에 이미 '기타'가 있으면 거기에 합산
+            Optional<Map<String, Object>> topEtc = top4.stream()
+                    .filter(m -> "기타".equals(m.get("category")))
+                    .findFirst();
+
+            if (topEtc.isPresent()) {
+                Map<String, Object> etc = topEtc.get();
+                long curMin = ((Number) etc.get("usage_minutes")).longValue();
+                long newMin = curMin + othersMinutes;
+                etc.put("usage_minutes", newMin);
+                etc.put("usage_percentage", round1(newMin * 100.0 / totalMinutes));
+            } else {
+                // Top4에 '기타'가 없으면 새 '기타' 추가 (총 5개가 될 수 있음)
+                top4.add(toRow("기타", othersMinutes, totalMinutes));
+            }
+        }
+
+        // 퍼센트 기준으로 정렬
+        top4.sort((a, b) -> Double.compare(
+                ((Number) b.get("usage_percentage")).doubleValue(),
+                ((Number) a.get("usage_percentage")).doubleValue()
+        ));
+        return top4;
     }
+
+    private Map<String, Object> toRow(String category, long minutes, long totalMinutes) {
+        Map<String, Object> map = new LinkedHashMap<>();
+        map.put("category", category);
+        map.put("usage_minutes", minutes);
+        map.put("usage_percentage", round1(minutes * 100.0 / totalMinutes));
+        return map;
+    }
+
+    private double round1(double v) {
+        return Math.round(v * 10.0) / 10.0;
+    }
+
 
 }

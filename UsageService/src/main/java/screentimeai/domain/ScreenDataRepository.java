@@ -30,37 +30,53 @@ public interface ScreenDataRepository
     );
 
     @Query(value = """
-
-            WITH sessions AS (
-            SELECT
-                s.package_name,
-                TO_TIMESTAMP(s.timestamp / 1000) AS start_time,
-                LEAD(TO_TIMESTAMP(s.timestamp / 1000)) OVER (
-                    PARTITION BY s.package_name
-                    ORDER BY TO_TIMESTAMP(s.timestamp / 1000)
-                ) AS end_time
-            FROM screen_data_table s
-            WHERE s.subject_id = :subjectId
-              AND s.type = 'MOVE_TO_FOREGROUND'
-              AND TO_TIMESTAMP(s.timestamp / 1000) BETWEEN NOW() - INTERVAL '24 HOURS' AND NOW()
-        ),
-        durations AS (
-            SELECT
-                COALESCE(m.playstore_category, '기타') AS category,
-                EXTRACT(EPOCH FROM (s.end_time - s.start_time)) AS duration_seconds
-            FROM sessions s
-            LEFT JOIN matched_app_category m
-                ON s.package_name = m.package_name
-            WHERE s.end_time IS NOT NULL
-        )
+    WITH base AS (
         SELECT
-            category,
-            ROUND(SUM(duration_seconds) / 60) AS usage_minutes,
-            ROUND(SUM(duration_seconds) * 100.0 / SUM(SUM(duration_seconds)) OVER (), 1) AS usage_percentage
-        FROM durations
-        GROUP BY category
-        ORDER BY usage_minutes DESC
-        
-        """, nativeQuery = true)
-    List<Map<String, Object>> getCategoryStatsLast24Hours(@Param("subjectId") String subjectId);
+            s.package_name,
+            s.type,
+            s."timestamp" AS ts_ms
+        FROM screen_data_table s
+        WHERE s.subject_id = :subjectId
+          AND s."timestamp" BETWEEN :fromMs AND :toMs
+    ),
+    ord AS (
+        SELECT
+            package_name,
+            type,
+            ts_ms,
+            LEAD(type)  OVER (PARTITION BY package_name ORDER BY ts_ms) AS next_type,
+            LEAD(ts_ms) OVER (PARTITION BY package_name ORDER BY ts_ms) AS next_ms
+        FROM base
+    ),
+    sessions AS (
+        SELECT
+            package_name,
+            ts_ms  AS start_ms,
+            next_ms AS end_ms
+        FROM ord
+        WHERE type = 'MOVE_TO_FOREGROUND'
+          AND next_type = 'MOVE_TO_BACKGROUND'
+          AND next_ms IS NOT NULL
+    ),
+    durations AS (
+        SELECT
+            COALESCE(m.playstore_category, '기타') AS category,
+            (end_ms - start_ms) / 1000.0 AS duration_seconds
+        FROM sessions s
+        LEFT JOIN matched_app_category m
+          ON s.package_name = m.package_name
+    )
+    SELECT
+        category,
+        CAST(ROUND(SUM(duration_seconds) / 60) AS BIGINT) AS usage_minutes
+    FROM durations
+    GROUP BY category
+    ORDER BY usage_minutes DESC
+    """, nativeQuery = true)
+    List<Map<String, Object>> getCategoryStatsLast24Hours(
+            @Param("subjectId") String subjectId,
+            @Param("fromMs") long fromMs,
+            @Param("toMs") long toMs
+    );
+
 }

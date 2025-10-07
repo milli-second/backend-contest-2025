@@ -32,7 +32,6 @@ public class ScreenDataController {
         return ResponseEntity.ok(result);
     }
 
-
     @GetMapping("/timePattern")
     public ResponseEntity<List<Map<String, Object>>> getTimeSlotUsage(@RequestParam String userId) {
         List<Map<String, Object>> result = service.getTimeSlotUsageForTodayAndYesterday(userId);
@@ -43,6 +42,12 @@ public class ScreenDataController {
     public ResponseEntity<List<Map<String, Object>>> getTop3Apps(@RequestParam String userId) {
         List<Map<String, Object>> result = service.getTop3UsedApps(userId);
         return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/category")
+    public ResponseEntity<List<Map<String, Object>>> getCategoryStats(@RequestParam String userId) {
+        List<Map<String, Object>> stats = service.getAppCategoryStatsForUser(userId);
+        return ResponseEntity.ok(stats);
     }
 }
 //>>> Clean Arch / Inbound Adaptor

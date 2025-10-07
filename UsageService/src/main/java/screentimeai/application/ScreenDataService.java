@@ -55,7 +55,7 @@ public class ScreenDataService {
         return saved.size();
     }
 
-    //주마다 사용패턴
+    //1. 주마다 사용패턴
     public List<Map<String, Object>> getWeeklyUsageTrends(String subjectId) {
         List<Map<String, Object>> resultList = new ArrayList<>();
 
@@ -118,7 +118,7 @@ public class ScreenDataService {
     }
 
 
-    //시간대별 사용량
+    //2. 시간대별 사용량
     public List<Map<String, Object>> getTimeSlotUsageForTodayAndYesterday(String subjectId) {
         List<Map<String, Object>> resultList = new ArrayList<>();
 
@@ -146,10 +146,10 @@ public class ScreenDataService {
                 to
         );
 
-//        System.out.println("조회된 이벤트 개수: " + events.size());
-//        for (ScreenData e : events) {
-//            System.out.println(e.getType() + " | " + e.getPackageName() + " | " + e.getTimestampEpochMs());
-//        }
+        System.out.println("조회된 이벤트 개수: " + events.size());
+        for (ScreenData e : events) {
+            System.out.println(e.getType() + " | " + e.getPackageName() + " | " + e.getTimestampEpochMs());
+        }
 
         List<Pair<ScreenData, ScreenData>> sessionPairs = new ArrayList<>();
         Deque<ScreenData> foregroundStack = new ArrayDeque<>();
@@ -177,12 +177,12 @@ public class ScreenDataService {
         timeSlotMap.put("오후(12-18시)", 0L);
         timeSlotMap.put("저녁(18-24시)", 0L);
 
-//        System.out.println("=== 세션 쌍 목록 ===");
-//        for (Pair<ScreenData, ScreenData> session : sessionPairs) {
-//            System.out.println("▶ " + session.getFirst().getPackageName()
-//                    + ": " + session.getFirst().getTimestampEpochMs()
-//                    + " ~ " + session.getSecond().getTimestampEpochMs());
-//        }
+        System.out.println("=== 세션 쌍 목록 ===");
+        for (Pair<ScreenData, ScreenData> session : sessionPairs) {
+            System.out.println("▶ " + session.getFirst().getPackageName()
+                    + ": " + session.getFirst().getTimestampEpochMs()
+                    + " ~ " + session.getSecond().getTimestampEpochMs());
+        }
 
         for (Pair<ScreenData, ScreenData> session : sessionPairs) {
             LocalDateTime start = Instant.ofEpochMilli(session.getFirst().getTimestampEpochMs())
@@ -194,7 +194,7 @@ public class ScreenDataService {
             if (durationSec <= 0) continue;
 
             String slot = getTimeSlot(start);
-            //System.out.println("▶ [" + slot + "] " + durationSec + "초 (" + durationSec / 60 + "분)");
+            System.out.println("▶ [" + slot + "] " + durationSec + "초 (" + durationSec / 60 + "분)");
             timeSlotMap.put(slot, timeSlotMap.get(slot) + durationSec / 60);
         }
 
@@ -213,7 +213,7 @@ public class ScreenDataService {
         return "저녁(18-24시)";
     }
 
-    //top3
+    //3. top3 사용앱
     public List<Map<String, Object>> getTop3UsedApps(String subjectId) {
         long now = System.currentTimeMillis();
         long from = now - 24 * 60 * 60 * 1000L;
@@ -274,6 +274,11 @@ public class ScreenDataService {
                     return map;
                 })
                 .collect(Collectors.toList());
+    }
+
+    //4. 사용 카테고리 분석
+    public List<Map<String, Object>> getAppCategoryStatsForUser(String subjectId) {
+        return repository.getCategoryStatsLast24Hours(subjectId);
     }
 
 }

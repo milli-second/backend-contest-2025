@@ -6,6 +6,7 @@ spring:
     name: userservice
 
   datasource:
+    #url: jdbc:postgresql://localhost:5432/userservice
     #url: jdbc:postgresql://localhost:5433/userservice
     #url: jdbc:postgresql://210.178.40.108:5432/userservice
     url: jdbc:postgresql://210.178.40.108:30032/userservice

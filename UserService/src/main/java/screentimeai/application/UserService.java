@@ -57,12 +57,11 @@ public class UserService {
         System.out.println("✅ Password changed for user: " + nickname);
     }
 
+
     public void deactivateAccount(String nickname) {
         User user = userRepository.findByNickname(nickname)
                 .orElseThrow(() -> new IllegalArgumentException("❌ 사용자 없음: " + nickname));
-
         user.deactivate();
-
         userRepository.save(user); // 👉 이벤트 발행 트리거
         System.out.println("🗑️ Account deactivated: " + nickname);
     }

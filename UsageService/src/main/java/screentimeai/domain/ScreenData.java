@@ -1,10 +1,10 @@
 package screentimeai.domain;
 
-import java.util.Date;
-
 import jakarta.persistence.*;
 import lombok.Data;
 import screentimeai.UsageserviceApplication;
+
+import java.util.UUID;
 
 @Entity
 @Table(name = "ScreenData_table")
@@ -13,40 +13,57 @@ import screentimeai.UsageserviceApplication;
 public class ScreenData {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    private Long sequenceId;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-    private Integer userId;
+    @Column(name = "subject_id", nullable = false, length = 64)
+    private String subjectId;
 
-    private Date timestamp;
+    @Column(name = "timestamp", nullable = false)
+    private Long timestampEpochMs;
 
-    private Date date;
+    @Column(name = "source_type")
+    private String sourceType;
 
-    private Date time; //TODO: time DATE 타입 맞는 지 확인하기
+    @Column(name = "source_info", nullable = false)
+    private String sourceInfo;
 
+    @Column(name = "package_name", nullable = false)
     private String packageName;
 
-    private Integer dayOfWeek;
+    @Column(name = "name", nullable = false)
+    private String name;
 
-    private Integer hourOfDay;
+    @Column(name = "is_system_app", nullable = false)
+    private Boolean systemApp;
 
-    private Long durationMs;
+    @Column(name = "is_updated_system_app")
+    private Boolean updatedSystemApp;
 
-    private Integer durationMinutes;
+    @Column(name = "type", nullable = false)
+    private String type;
 
-    @PostPersist
-    public void onPostPersist() {
-        DailyAnalysisDataPrepared dailyAnalysisDataPrepared = new DailyAnalysisDataPrepared(
-            this
-        );
-        dailyAnalysisDataPrepared.publishAfterCommit();
+    public static ScreenData withTimestampEpoch(long timestampEpochMs) {
+        ScreenData data = new ScreenData();
+        data.setTimestampEpochMs(timestampEpochMs);
+        return data;
     }
 
-    public static ScreenDataRepository repository() {
-        ScreenDataRepository screenDataRepository = UsageserviceApplication.applicationContext.getBean(
-            ScreenDataRepository.class
-        );
-        return screenDataRepository;
-    }
+
+
+//    @PostPersist
+//    public void onPostPersist() {
+//        DailyAnalysisDataPrepared dailyAnalysisDataPrepared = new DailyAnalysisDataPrepared(
+//            this
+//        );
+//        dailyAnalysisDataPrepared.publishAfterCommit();
+//    }
+
+//    public static ScreenDataRepository repository() {
+//        ScreenDataRepository screenDataRepository = UsageserviceApplication.applicationContext.getBean(
+//            ScreenDataRepository.class
+//        );
+//        return screenDataRepository;
+//    }
 }
 //>>> DDD / Aggregate Root

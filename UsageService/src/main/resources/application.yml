@@ -5,16 +5,15 @@ spring:
   application:
     name: usageservice
 
-  # 로컬 테스트용 H2 메모리 DB
   datasource:
-    url: jdbc:postgresql://localhost:5433/usageservice
+    url: jdbc:postgresql://localhost:5432/postgres
     driver-class-name: org.postgresql.Driver
     username: postgres
-    password: postgres
+    password: your_password
 
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: none
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect

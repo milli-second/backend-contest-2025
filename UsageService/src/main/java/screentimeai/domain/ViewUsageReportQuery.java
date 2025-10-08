@@ -5,6 +5,5 @@ import lombok.Data;
 
 @Data
 public class ViewUsageReportQuery {
-
     private Integer userId;
 }

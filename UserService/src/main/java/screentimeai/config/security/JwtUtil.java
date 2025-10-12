@@ -18,10 +18,8 @@ public class JwtUtil {
     private final Key SECRET_KEY;
 
     public JwtUtil(@Value("${jwt.secret}") String secret) {
-
         this.SECRET_KEY = Keys.hmacShaKeyFor(secret.getBytes());
         System.out.println("✅ Loaded JWT Secret: " + secret);
-
     }
     // 토큰 생성
     public String generateToken(String nickname) {

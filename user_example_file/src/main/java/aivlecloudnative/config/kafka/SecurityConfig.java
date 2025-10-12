@@ -37,6 +37,7 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/users/login",
                                 "/users/signup",
+                                "/users/change-password",
                                 // ✅ Swagger 관련 경로 허용
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",

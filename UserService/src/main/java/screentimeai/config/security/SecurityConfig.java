@@ -2,10 +2,12 @@ package screentimeai.config.security;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -31,9 +33,9 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http, RedisTemplate<String, String> authRedisTemplate) throws Exception {
         return http
-                .csrf(csrf -> csrf.disable()) // JWT 기반이라 CSRF 비활성화
+                .csrf(AbstractHttpConfigurer::disable) // JWT 기반이라 CSRF 비활성화
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.POST,"/api/v1/users/signup", "/api/v1/users/login").permitAll() // 회원가입/로그인만 허용
                         .anyRequest().authenticated() // 나머지는 인증 필요
@@ -42,7 +44,7 @@ public class SecurityConfig {
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS) // 세션 필요없음
                 )
                 .addFilterBefore(ipRateLimitFilter, UsernamePasswordAuthenticationFilter.class) //가장 먼저 실행해서 요청을 제한
-                .addFilterBefore(new JwtAuthenticationFilter(jwtUtil),// ratelitit을 통과한 요청에 대해 JWT 인증 처리
+                .addFilterBefore(new JwtAuthenticationFilter(jwtUtil,authRedisTemplate),// ratelitit을 통과한 요청에 대해 JWT 인증 처리
                         UsernamePasswordAuthenticationFilter.class)
                 .build();
     }

@@ -29,25 +29,59 @@ public class UserController {
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request) {
-        User user = userService.login(request.getNickname(), request.getPassword());
-        String token = jwtUtil.generateToken(user.getNickname());
+        String token = userService.login(request.getNickname(), request.getPassword());
+
+        //User user = userService.login(request.getNickname(), request.getPassword());
+        //String token = jwtUtil.generateToken(user.getNickname());
+
 
         return ResponseEntity.ok(Map.of(
                 "token", token,
-                "nickname", user.getNickname()
+                "nickname", request.getNickname()
         ));
     }
 
     @PostMapping("/logout")
-    public String logout(@RequestBody Map<String, String> body) {
-        String nickname = body.get("nickname");
+    public ResponseEntity<String> logout(@RequestHeader("Authorization") String token) {
+//        String nickname = body.get("nickname");
+//        userService.logout(nickname);
+//        return "User logged out: " + nickname;
+
+        // Bearer 제거
+        String accessToken = token.replace("Bearer ", "");
+
+        // JWT에서 닉네임 추출
+        String nickname = jwtUtil.getUsernameFromToken(accessToken);
+
         userService.logout(nickname);
-        return "User logged out: " + nickname;
+        return ResponseEntity.ok("로그아웃 완료");
+
     }
 
     @PostMapping("/signup")
     public String signup(@Valid @RequestBody SignupRequest request) {
         userService.signup(request.getNickname(), request.getPassword());
         return "User signed up: " + request.getNickname();
+    }
+
+    // ✅ 비밀번호 변경
+    @PostMapping("/change-password")
+    public ResponseEntity<String> changePassword(
+            @RequestHeader("Authorization") String token,
+            @RequestBody Map<String, String> body
+    ) {
+        // 1️⃣ 토큰에서 닉네임 추출
+        String accessToken = token.replace("Bearer ", "");
+        String nickname = jwtUtil.getUsernameFromToken(accessToken);
+        System.out.println("nickname from token(change-password): " + nickname);
+
+        // 2️⃣ 요청 JSON 파싱
+        String oldPassword = body.get("oldPassword");
+        String newPassword = body.get("newPassword");
+
+        // 3️⃣ 서비스 호출
+        userService.changePassword(nickname, oldPassword, newPassword);
+
+        return ResponseEntity.ok("비밀번호가 성공적으로 변경되었습니다.");
     }
 }

@@ -12,11 +12,16 @@ jobs:
       - name: Checkout GitHub repository
         uses: actions/checkout@v2
 
+      - name: Set Git config
+        run: |
+          git config --global user.name "Layla Oh"
+          git config --global user.email "crispylemon7120@gmail.com"
+
       - name: Push to GitLab
         run: |
           git remote add gitlab https://gitlab.com/layla7120-group/backend.git
-          git config --global user.name "Layla Oh"
-          git config --global user.email "crispylemon7120@gmail.com"
-          git push --set-upstream gitlab main
-        env:
-          GITLAB_TOKEN: ${{ secrets.GITLAB_TOKEN }}
+          git fetch --all
+          git add .
+          # 커밋이 필요한 경우에만 실행
+          if git diff --cached --quiet; then echo "No changes to commit"; else git commit -m "Push from GitHub Actions"; fi
+          git push https://gitlab-ci-token:${{ secrets.GITLAB_TOKEN }}@gitlab.com/layla7120-group/backend.git

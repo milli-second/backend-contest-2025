@@ -19,9 +19,5 @@ jobs:
 
       - name: Push to GitLab
         run: |
-          git remote add gitlab https://gitlab.com/layla7120-group/backend.git
-          git fetch --all
-          git add .
-          # 커밋이 필요한 경우에만 실행
-          if git diff --cached --quiet; then echo "No changes to commit"; else git commit -m "Push from GitHub Actions"; fi
-          git push https://gitlab-ci-token:${{ secrets.GITLAB_TOKEN }}@gitlab.com/layla7120-group/backend.git
+          git remote add gitlab https://oauth2:${{ secrets.GITLAB_TOKEN }}@gitlab.com/layla7120-group/backend.git
+          git push gitlab main --force

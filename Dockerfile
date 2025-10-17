@@ -1,6 +1,6 @@
 # --- 1단계: 빌드 환경 (Gradle로 소스코드 빌드) ---
 # Gradle 8.5와 JDK 21 버전을 빌드용 이미지로 사용합니다.
-FROM gradle:8.5.0-jdk21-alpine AS builder
+FROM gradle:jdk21-jammy AS builder
 
 # 작업 디렉토리를 설정합니다.
 WORKDIR /workspace

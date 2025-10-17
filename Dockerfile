@@ -25,7 +25,7 @@ WORKDIR /app
 
 # 1단계(builder)에서 빌드된 최종 jar 파일을 복사해옵니다.
 ARG SERVICE_NAME
-COPY --from=builder /workspace/${SERVICE_NAME}/build/libs/*.jar app.jar
+COPY --from=builder /workspace/${SERVICE_NAME}/build/libs/*-SNAPSHOT.jar app.jar
 
 # 애플리케이션이 8080 포트를 사용함을 외부에 알립니다.
 EXPOSE 8080

@@ -17,7 +17,7 @@ pipeline {
     stage('Gradle Build (all)') {
       steps {
         echo "⚙️ Running Gradle build for all modules..."
-        sh './gradlew clean build -x test'
+        sh './gradlew :UserService:build :UsageService:build :gateway:build -x test'
       }
     }
 

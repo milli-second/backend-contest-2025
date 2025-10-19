@@ -2,5 +2,5 @@ rootProject.name = 'screen_time_ai'
 
 include 'gateway'
 include 'UserService'
-include 'InsightService'
+//include 'InsightService'
 include 'UsageService'

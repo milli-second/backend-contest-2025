@@ -27,7 +27,6 @@ pipeline {
           def modules = [
             [name: 'userservice', path: 'UserService'],
             [name: 'usageservice', path: 'UsageService'],
-            [name: 'insightservice', path: 'InsightService'],
             [name: 'gateway', path: 'gateway']
           ]
 

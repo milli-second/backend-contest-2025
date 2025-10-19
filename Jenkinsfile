@@ -2,7 +2,7 @@ pipeline {
   agent any
 
   environment {
-    REGISTRY = 'localhost:5050'       // Nexus 레지스트리 주소 (포트 맞게 수정)
+    REGISTRY = 'host.docker.internal:5050'      // Nexus 레지스트리 주소 (포트 맞게 수정)
     CREDS = 'nexus-credentials'       // Jenkins에 등록한 자격증명 ID
   }
 

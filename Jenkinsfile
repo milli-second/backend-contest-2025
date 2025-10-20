@@ -2,7 +2,7 @@ pipeline {
   agent any
 
   environment {
-    REGISTRY = 'host.docker.internal:5050'
+    REGISTRY = '192.168.35.63:5050'
     CREDS = 'nexus-credentials'
   }
 
@@ -31,8 +31,10 @@ pipeline {
           ]
 
           withCredentials([usernamePassword(credentialsId: CREDS, usernameVariable: 'U', passwordVariable: 'P')]) {
-            // ✅ 명시적 로그인 (http로)
-            sh "echo $P | docker login ${REGISTRY} -u $U --password-stdin"
+            // ✅ REGISTRY 변수 그대로 사용
+            sh """
+                echo "$P" | docker login ${REGISTRY} -u "$U" --password-stdin
+            """
 
             for (svc in modules) {
               echo "🚀 Building Docker image for ${svc.name}..."

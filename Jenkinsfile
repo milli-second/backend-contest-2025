@@ -2,8 +2,8 @@ pipeline {
   agent any
 
   environment {
-    REGISTRY = 'host.docker.internal:5050'      // Nexus 레지스트리 주소 (포트 맞게 수정)
-    CREDS = 'nexus-credentials'       // Jenkins에 등록한 자격증명 ID
+    REGISTRY = 'host.docker.internal:5050'
+    CREDS = 'nexus-credentials'
   }
 
   stages {
@@ -30,16 +30,23 @@ pipeline {
             [name: 'gateway', path: 'gateway']
           ]
 
-          docker.withRegistry("http://${REGISTRY}", CREDS) {
+          withCredentials([usernamePassword(credentialsId: CREDS, usernameVariable: 'U', passwordVariable: 'P')]) {
+            // ✅ 명시적 로그인 (http로)
+            sh "echo $P | docker login http://${REGISTRY} -u $U --password-stdin"
+
             for (svc in modules) {
               echo "🚀 Building Docker image for ${svc.name}..."
-
-              def image = docker.build("${REGISTRY}/screentime/${svc.name}:${BUILD_NUMBER}", svc.path)
+              sh "docker build -t ${REGISTRY}/screentime/${svc.name}:${BUILD_NUMBER} ${svc.path}"
 
               echo "📤 Pushing image ${REGISTRY}/screentime/${svc.name}:${BUILD_NUMBER}..."
-              image.push()
-              image.push("latest")
+              sh """
+                docker push ${REGISTRY}/screentime/${svc.name}:${BUILD_NUMBER}
+                docker tag ${REGISTRY}/screentime/${svc.name}:${BUILD_NUMBER} ${REGISTRY}/screentime/${svc.name}:latest
+                docker push ${REGISTRY}/screentime/${svc.name}:latest
+              """
             }
+
+            sh "docker logout http://${REGISTRY}"
           }
         }
       }

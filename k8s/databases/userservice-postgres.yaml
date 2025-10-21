@@ -1,12 +1,12 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: userservice-postgres
-  namespace: db
+  name: userservice-postgres-test
+  namespace: db-test
 spec:
   clusterIP: None  # Headless Service for StatefulSet
   selector:
-    app: userservice-postgres
+    app: userservice-postgres-test
   ports:
     - port: 5432
       targetPort: 5432
@@ -14,18 +14,18 @@ spec:
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: userservice-postgres
-  namespace: db
+  name: userservice-postgres-test
+  namespace: db-test
 spec:
-  serviceName: userservice-postgres
+  serviceName: userservice-postgres-test
   replicas: 1
   selector:
     matchLabels:
-      app: userservice-postgres
+      app: userservice-postgres-test
   template:
     metadata:
       labels:
-        app: userservice-postgres
+        app: userservice-postgres-test
     spec:
       containers:
       - name: postgres
@@ -37,17 +37,17 @@ spec:
         - name: POSTGRES_USER
           valueFrom:
             secretKeyRef:
-              name: userservice-db-secret
+              name: userservice-db-secret-test
               key: POSTGRES_USER
         - name: POSTGRES_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: userservice-db-secret
+              name: userservice-db-secret-test
               key: POSTGRES_PASSWORD
         - name: POSTGRES_DB
           valueFrom:
             secretKeyRef:
-              name: userservice-db-secret
+              name: userservice-db-secret-test
               key: POSTGRES_DB
         - name: PGDATA
           value: /var/lib/postgresql/data/pgdata

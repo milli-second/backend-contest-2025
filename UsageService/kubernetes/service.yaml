@@ -1,12 +1,13 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: usageservice
+  name: usageservice-test
+  namespace: screentimeai-test   # Namespace 지정
   labels:
-    app: usageservice
+    app: usageservice-test
 spec:
   ports:
     - port: 8080
       targetPort: 8080
   selector:
-    app: usageservice
+    app: usageservice-test

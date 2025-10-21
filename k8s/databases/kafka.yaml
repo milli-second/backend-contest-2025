@@ -2,11 +2,11 @@ apiVersion: v1
 kind: Service
 metadata:
   name: zookeeper
-  namespace: db
+  namespace: db-test
 spec:
   clusterIP: None
   selector:
-    app: zookeeper
+    app: zookeeper-test
   ports:
     - port: 2181
       targetPort: 2181
@@ -21,18 +21,18 @@ spec:
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: zookeeper
-  namespace: db
+  name: zookeeper-test
+  namespace: db-test
 spec:
-  serviceName: zookeeper
+  serviceName: zookeeper-test
   replicas: 1
   selector:
     matchLabels:
-      app: zookeeper
+      app: zookeeper-test
   template:
     metadata:
       labels:
-        app: zookeeper
+        app: zookeeper-test
     spec:
       containers:
       - name: zookeeper
@@ -76,12 +76,12 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: kafka
-  namespace: db
+  name: kafka-test
+  namespace: db-test
 spec:
   clusterIP: None
   selector:
-    app: kafka
+    app: kafka-test
   ports:
     - port: 9092
       targetPort: 9092
@@ -90,14 +90,14 @@ spec:
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: kafka
-  namespace: db
+  name: kafka-test
+  namespace: db-test
 spec:
-  serviceName: kafka
+  serviceName: kafka-test
   replicas: 1
   selector:
     matchLabels:
-      app: kafka
+      app: kafka-test
   template:
     metadata:
       labels:
@@ -113,11 +113,11 @@ spec:
         - name: KAFKA_BROKER_ID
           value: "1"
         - name: KAFKA_ZOOKEEPER_CONNECT
-          value: "zookeeper-0.zookeeper.db.svc.cluster.local:2181"
+          value: "zookeeper-test-0.zookeeper-test.db-test.svc.cluster.local:2181"
         - name: KAFKA_LISTENERS
           value: "PLAINTEXT://0.0.0.0:9092"
         - name: KAFKA_ADVERTISED_LISTENERS
-          value: "PLAINTEXT://kafka-0.kafka.db.svc.cluster.local:9092"
+          value: "PLAINTEXT://kafka-test-0.kafka-test.db-test.svc.cluster.local:9092"
         - name: KAFKA_LISTENER_SECURITY_PROTOCOL_MAP
           value: "PLAINTEXT:PLAINTEXT"
         - name: KAFKA_INTER_BROKER_LISTENER_NAME

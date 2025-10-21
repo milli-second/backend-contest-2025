@@ -1,24 +1,24 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: usageservice-config
-  namespace: screentimeai
+  name: usageservice-config-test
+  namespace: screentimeai-test
 data:
   SPRING_PROFILES_ACTIVE: "docker"
-  SPRING_DATASOURCE_URL: "jdbc:postgresql://usageservice-postgres-0.usageservice-postgres.db.svc.cluster.local:5432/usageservice_db"
-  SPRING_DATA_REDIS_HOST: "redis-0.redis.db.svc.cluster.local"
+  SPRING_DATASOURCE_URL: "jdbc:postgresql://usageservice-postgres-test-0.usageservice-postgres-test.db-test.svc.cluster.local:5432/usageservice_db"
+  SPRING_DATA_REDIS_HOST: "redis-test-0.redis-test.db-test.svc.cluster.local"
   SPRING_DATA_REDIS_PORT: "6379"
   SPRING_DATA_REDIS_DATABASE: "1"
-  SPRING_KAFKA_BOOTSTRAP_SERVERS: "kafka-0.kafka.db.svc.cluster.local:9092"
+  SPRING_KAFKA_BOOTSTRAP_SERVERS: "kafka-test-0.kafka-test.db-test.svc.cluster.local:9092"
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: usageservice
-  namespace: screentimeai
+  name: usageservice-test
+  namespace: screentimeai-test
 spec:
   selector:
-    app: usageservice
+    app: usageservice-test
   ports:
     - port: 8080
       targetPort: 8080
@@ -28,21 +28,21 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: usageservice
-  namespace: screentimeai
+  name: usageservice-test
+  namespace: screentimeai-test
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: usageservice
+      app: usageservice-test
   template:
     metadata:
       labels:
-        app: usageservice
+        app: usageservice-test
     spec:
       containers:
-      - name: usageservice
-        image: laylaoh/usageservice:latest-amd64
+      - name: usageservice-test
+        image: laylaoh/usageservice-test:latest-amd64
         imagePullPolicy: Always
         ports:
         - containerPort: 8080
@@ -51,47 +51,47 @@ spec:
         - name: SPRING_PROFILES_ACTIVE
           valueFrom:
             configMapKeyRef:
-              name: usageservice-config
+              name: usageservice-config-test
               key: SPRING_PROFILES_ACTIVE
         - name: SPRING_DATASOURCE_URL
           valueFrom:
             configMapKeyRef:
-              name: usageservice-config
+              name: usageservice-config-test
               key: SPRING_DATASOURCE_URL
         - name: SPRING_DATASOURCE_USERNAME
           valueFrom:
             secretKeyRef:
-              name: usageservice-db-secret
+              name: usageservice-db-secret-test
               key: POSTGRES_USER
         - name: SPRING_DATASOURCE_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: usageservice-db-secret
+              name: usageservice-db-secret-test
               key: POSTGRES_PASSWORD
         - name: SPRING_DATA_REDIS_HOST
           valueFrom:
             configMapKeyRef:
-              name: usageservice-config
+              name: usageservice-config-test
               key: SPRING_DATA_REDIS_HOST
         - name: SPRING_DATA_REDIS_PORT
           valueFrom:
             configMapKeyRef:
-              name: usageservice-config
+              name: usageservice-config-test
               key: SPRING_DATA_REDIS_PORT
         - name: SPRING_DATA_REDIS_DATABASE
           valueFrom:
             configMapKeyRef:
-              name: usageservice-config
+              name: usageservice-config-test
               key: SPRING_DATA_REDIS_DATABASE
         - name: SPRING_DATA_REDIS_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: redis-secret
+              name: redis-secret-test
               key: REDIS_PASSWORD
         - name: SPRING_CLOUD_STREAM_KAFKA_BINDER_BROKERS
           valueFrom:
             configMapKeyRef:
-              name: usageservice-config
+              name: usageservice-config-test
               key: SPRING_KAFKA_BOOTSTRAP_SERVERS
         resources:
           requests:

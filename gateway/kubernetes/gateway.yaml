@@ -1,8 +1,8 @@
 apiVersion: networking.istio.io/v1beta1
 kind: Gateway
 metadata:
-  name: millisecond-gateway
-  namespace: default
+  name: millisecond-gateway-test
+  namespace: screentimeai-test      # ⭐️ Namespace 변경
 spec:
   selector:
     istio: ingressgateway  # Istio의 기본 Ingress Gateway Pod 선택
@@ -13,7 +13,7 @@ spec:
       name: http
       protocol: HTTP
     hosts:
-    - "api.yolang.shop"
+    - "test-api.yolang.shop" # ⭐️ 테스트용 도메인으로 변경
     tls:
       httpsRedirect: true  # HTTP → HTTPS 자동 리다이렉트
 
@@ -23,7 +23,7 @@ spec:
       name: https
       protocol: HTTPS
     hosts:
-    - "api.yolang.shop"
+    - "test-api.yolang.shop" # ⭐️ 테스트용 도메인으로 변경
     tls:
       mode: SIMPLE  # 단방향 TLS (서버 → 클라이언트)
-      credentialName: millisecond-tls  # certificate.yaml에서 생성한 Secret 이름
+      credentialName: millisecond-tls-test  # certificate.yaml에서 생성한 Secret 이름

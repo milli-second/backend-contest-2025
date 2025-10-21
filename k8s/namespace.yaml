@@ -1,13 +1,13 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: screentimeai
+  name: screentimeai-test
   labels:
-    name: screentimeai
+    name: screentimeai-test
 ---
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: db
+  name: db-test
   labels:
-    name: db
+    name: db-test

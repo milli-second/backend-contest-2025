@@ -1,20 +1,20 @@
 apiVersion: networking.istio.io/v1beta1
 kind: VirtualService
 metadata:
-  name: millisecond-virtualservice
-  namespace: default
+  name: millisecond-virtualservice-test
+  namespace: screentimeai-test             # ⭐️ Namespace 변경
 spec:
   hosts:
-  - "api.yolang.shop"
+  - "test-api.yolang.shop" # ⭐️ 테스트용 도메인으로 변경
   gateways:
-  - millisecond-gateway
+  - millisecond-gateway-test # ⭐️ 위에서 수정한 Gateway 이름으로 변경
   http:
   - match:
     - uri:
         prefix: /users
     route:
     - destination:
-        host: userservice.default.svc.cluster.local
+        host: userservice-test.screentimeai-test.svc.cluster.local
         port:
           number: 8080
 
@@ -23,7 +23,7 @@ spec:
         prefix: /usage
     route:
     - destination:
-        host: usageservice.default.svc.cluster.local
+        host: usageservice-test.screentimeai-test.svc.cluster.local
         port:
           number: 8080
 
@@ -33,6 +33,6 @@ spec:
         prefix: /insights
     route:
     - destination:
-        host: insightservice.default.svc.cluster.local
+        host: insightservice-test.screentimeai-test.svc.cluster.local
         port:
           number: 8080

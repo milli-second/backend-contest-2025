@@ -1,22 +1,23 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: usageservice
+  name: usageservice-test
+  namespace: screentimeai-test   # Namespace 지정
   labels:
-    app: usageservice
+    app: usageservice-test
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: usageservice
+      app: usageservice-test
   template:
     metadata:
       labels:
-        app: usageservice
+        app: usageservice-test
     spec:
       containers:
         - name: usageservice
-          image: "username/usageservice:latest"
+          image: "username/usageservice:test-latest"
           ports:
             - containerPort: 8080
           readinessProbe:

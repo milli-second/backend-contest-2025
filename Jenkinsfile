@@ -33,50 +33,59 @@ pipeline {
 
     stage('Docker Build & Push (all services)') {
       agent {
-        docker {
-          image 'docker:dind' // Docker-in-Docker 이미지를 사용
-          args '-v /var/run/docker.sock:/var/run/docker.sock --privileged' // 호스트 Docker 소켓 마운트 및 특권 모드 활성화
-        }
-      }
-      steps {
-        script {
-          def modules = [
-            [name: 'userservice', path: 'UserService'],
-            [name: 'usageservice', path: 'UsageService'],
-            [name: 'gateway', path: 'gateway']
-          ]
+    kubernetes {
+      yaml """
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+  - name: docker
+    image: docker:24
+    command:
+    - cat
+    tty: true
+    volumeMounts:
+    - name: docker-sock
+      mountPath: /var/run/docker.sock
+  volumes:
+  - name: docker-sock
+    hostPath:
+      path: /var/run/docker.sock
+      type: Socket
+"""
+    }
+  }
+  steps {
+    container('docker') {
+      script {
+        def modules = [
+          [name: 'userservice', path: 'UserService'],
+          [name: 'usageservice', path: 'UsageService'],
+          [name: 'gateway', path: 'gateway']
+        ]
 
-          withCredentials([usernamePassword(credentialsId: CREDS, usernameVariable: 'U', passwordVariable: 'P')]) {
-            // Docker Login: Nexus 내부 주소와 5000번 포트를 사용 (HTTP)
-            sh """
-                echo "$P" | docker login ${REGISTRY} -u "$U" --password-stdin
-            """
+        withCredentials([usernamePassword(credentialsId: CREDS, usernameVariable: 'U', passwordVariable: 'P')]) {
+          sh """
+            echo "\$P" | docker login ${REGISTRY} -u "\$U" --password-stdin
+          """
 
-            for (svc in modules) {
-              def imagePath = "${NEXUS_REGISTRY}/${NEXUS_REPO_NAME}/${svc.name}"
-              def imageTag = "${env.BRANCH_NAME}-${env.BUILD_NUMBER}"
-              
-              echo "🚀 Building Docker image for ${svc.name}..."
-              // ⭐️ 빌드 시 태그에 Repository 이름 추가
-              sh "docker build -t ${imagePath}:${imageTag} ${svc.path}"
-
-              echo "📤 Pushing image ${imagePath}:${imageTag}..."
-              sh "docker push ${imagePath}:${imageTag}"
-              
-              // latest 태그 푸시는 선택 사항이므로 주석 처리하거나 제거 (테스트에서는 특정 빌드 번호 태그 사용 권장)
-              // sh "docker tag ${imagePath}:${imageTag} ${imagePath}:latest"
-              // sh "docker push ${imagePath}:latest"
-              
-              // 다음 스테이지에서 사용할 이미지 주소 저장
-              //env."IMAGE_NAME_${svc.name.toUpperCase()}" = "${imagePath}:${imageTag}"
-            }
-
-            sh "docker logout http://${REGISTRY}"
+          for (svc in modules) {
+            def imagePath = "${REGISTRY}/${NEXUS_REPO_NAME}/${svc.name}"
+            def imageTag = "${env.BRANCH_NAME}-${env.BUILD_NUMBER}"
+            
+            echo "🚀 Building ${svc.name}..."
+            sh "docker build -t ${imagePath}:${imageTag} ${svc.path}"
+            
+            echo "📤 Pushing ${imagePath}:${imageTag}..."
+            sh "docker push ${imagePath}:${imageTag}"
           }
+
+          sh "docker logout ${REGISTRY}"
         }
       }
     }
   }
+}
 
   post {
     success {

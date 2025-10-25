@@ -16,13 +16,13 @@ pipeline {
     // KUBECONFIG_CREDENTIALS_ID = 'kubernetes-sa' // Jenkins Credentials ID (미리 등록됨)
   }
 
-  stages {
-    stage('Checkout') {
-      steps {
-        echo "📦 Pulling latest code from Git..."
-        checkout scm
-      }
-    }
+  // stages {
+  //   stage('Checkout') {
+  //     steps {
+  //       echo "📦 Pulling latest code from Git..."
+  //       checkout scm
+  //     }
+  //   }
 
     stage('Gradle Build (all)') {
       steps {

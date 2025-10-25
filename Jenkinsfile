@@ -1,10 +1,10 @@
 pipeline {
   agent any
 
-  tools{
-    // jenkins Tools 설정에서 정의한 이름(jdk21)과 일치해야함
-    jdk 'jdk21'
-  }
+  // tools{
+  //   // jenkins Tools 설정에서 정의한 이름(jdk21)과 일치해야함
+  //   jdk 'jdk21'
+  // }
   
   environment {
     REGISTRY = "nexus.cicd.svc.cluster.local:5000"

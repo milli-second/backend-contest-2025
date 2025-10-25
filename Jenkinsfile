@@ -32,12 +32,12 @@ pipeline {
     }
 
     stage('Docker Build & Push (all services)') {
-      // agent {
-      //   docker {
-      //     image 'docker:dind' // Docker-in-Docker 이미지를 사용
-      //     args '-v /var/run/docker.sock:/var/run/docker.sock --privileged' // 호스트 Docker 소켓 마운트 및 특권 모드 활성화
-      //   }
-      // }
+      agent {
+        docker {
+          image 'docker:dind' // Docker-in-Docker 이미지를 사용
+          args '-v /var/run/docker.sock:/var/run/docker.sock --privileged' // 호스트 Docker 소켓 마운트 및 특권 모드 활성화
+        }
+      }
       steps {
         script {
           def modules = [

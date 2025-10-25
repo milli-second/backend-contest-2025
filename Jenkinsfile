@@ -22,56 +22,61 @@ pipeline {
       }
     }
 
-    stage('Docker Build & Push (all services)') {
-      agent {
-        kubernetes {
-          yaml """
-apiVersion: v1
-kind: Pod
-spec:
-  containers:
-  - name: docker
-    image: docker:24
-    command:
-    - cat
-    tty: true
-    volumeMounts:
-    - name: docker-sock
-      mountPath: /var/run/docker.sock
-  volumes:
-  - name: docker-sock
-    hostPath:
-      path: /var/run/docker.sock
-      type: Socket
-"""
-        }
-      }
+    stage('Build & Push with Kaniko') {
       steps {
-        container('docker') {
-          script {
-            def modules = [
-              [name: 'userservice', path: 'UserService'],
-              [name: 'usageservice', path: 'UsageService'],
-              [name: 'gateway', path: 'gateway']
-            ]
+        script {
+          def modules = [
+            [name: 'userservice', path: 'UserService'],
+            [name: 'usageservice', path: 'UsageService'],
+            [name: 'gateway', path: 'gateway']
+          ]
 
-            withCredentials([usernamePassword(credentialsId: CREDS, usernameVariable: 'U', passwordVariable: 'P')]) {
+          withCredentials([usernamePassword(credentialsId: CREDS, usernameVariable: 'U', passwordVariable: 'P')]) {
+            for (svc in modules) {
+              def imagePath = "${REGISTRY}/${NEXUS_REPO_NAME}/${svc.name}"
+              def imageTag = "${env.BRANCH_NAME}-${env.BUILD_NUMBER}"
+              
+              echo "🚀 Building and pushing ${svc.name} with Kaniko..."
+              
               sh """
-                echo "\$P" | docker login ${REGISTRY} -u "\$U" --password-stdin
+                kubectl run kaniko-${svc.name}-${env.BUILD_NUMBER} \
+                  --rm -i --restart=Never \
+                  --image=gcr.io/kaniko-project/executor:latest \
+                  --overrides='{
+                    "spec": {
+                      "containers": [{
+                        "name": "kaniko",
+                        "image": "gcr.io/kaniko-project/executor:latest",
+                        "args": [
+                          "--context=dir:///workspace",
+                          "--dockerfile=/workspace/${svc.path}/Dockerfile",
+                          "--destination=${imagePath}:${imageTag}",
+                          "--insecure",
+                          "--skip-tls-verify"
+                        ],
+                        "volumeMounts": [{
+                          "name": "workspace",
+                          "mountPath": "/workspace"
+                        }, {
+                          "name": "docker-config",
+                          "mountPath": "/kaniko/.docker"
+                        }]
+                      }],
+                      "volumes": [{
+                        "name": "workspace",
+                        "hostPath": {
+                          "path": "${WORKSPACE}",
+                          "type": "Directory"
+                        }
+                      }, {
+                        "name": "docker-config",
+                        "configMap": {
+                          "name": "docker-config"
+                        }
+                      }]
+                    }
+                  }'
               """
-
-              for (svc in modules) {
-                def imagePath = "${REGISTRY}/${NEXUS_REPO_NAME}/${svc.name}"
-                def imageTag = "${env.BRANCH_NAME}-${env.BUILD_NUMBER}"
-                
-                echo "🚀 Building Docker image for ${svc.name}..."
-                sh "docker build -t ${imagePath}:${imageTag} ${svc.path}"
-
-                echo "📤 Pushing image ${imagePath}:${imageTag}..."
-                sh "docker push ${imagePath}:${imageTag}"
-              }
-
-              sh "docker logout ${REGISTRY}"
             }
           }
         }

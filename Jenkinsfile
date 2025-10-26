@@ -6,7 +6,7 @@ pipeline {
     NEXUS_REPO_NAME = "screentimeai-repo" 
     CREDS = 'nexus-credentials'
     DOCKER_HOST = 'tcp://localhost:2375'
-    PATH = "/tmp:${env.PATH}"
+    PATH = "/opt/docker-cli:${env.PATH}"
   }
 
   stages {
@@ -29,13 +29,16 @@ pipeline {
         script {
           echo "⏳ Waiting for Docker daemon..."
           sh '''
-            for i in {1..30}; do
+            COUNT=0
+            MAX_WAIT=30
+            while [ $COUNT -lt $MAX_WAIT ]; do
               if docker info > /dev/null 2>&1; then
                 echo "✅ Docker daemon is ready!"
                 docker version
                 break
               fi
-              echo "Waiting... ($i/30)"
+              COUNT=$((COUNT + 1))
+              echo "Waiting... ($COUNT/$MAX_WAIT)"
               sleep 2
             done
           '''

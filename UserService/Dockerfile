@@ -3,7 +3,7 @@ FROM gradle:8.5.0-jdk21-alpine AS build
 WORKDIR /home/gradle/src
 
 # 프로젝트 루트의 build.gradle과 settings.gradle을 복사
-COPY ../build.gradle ../settings.gradle /home/gradle/
+COPY build.gradle settings.gradle /home/gradle/
 COPY build.gradle /home/gradle/src/UserService/
 COPY . /home/gradle/src/UserService/
 

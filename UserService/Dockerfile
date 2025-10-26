@@ -3,17 +3,16 @@ FROM gradle:8.5.0-jdk21-jammy AS build
 WORKDIR /home/gradle/project
 
 # 프로젝트 루트의 build.gradle과 settings.gradle을 복사
-COPY ../build.gradle ./build.gradle
-COPY ../settings.gradle ./settings.gradle
+COPY build.gradle settings.gradle ./
 
 # UserService의 build.gradle만 먼저 복사 (캐시 최적화)
-COPY build.gradle ./UserService/build.gradle
+COPY UserService/build.gradle ./UserService/build.gradle
 
 # 종속성 다운로드를 위해 빌드 실행 (캐시 최적화)
 RUN gradle :UserService:build --no-daemon -x test || true
 
 # UserService 모듈 전체를 복사
-COPY . ./UserService/
+COPY UserService ./UserService/
 
 # 실제 빌드 실행
 RUN gradle :UserService:build -x test --no-daemon

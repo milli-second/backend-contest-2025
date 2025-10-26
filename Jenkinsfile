@@ -50,9 +50,9 @@ pipeline {
       steps {
         script {
           def modules = [
-            [name: 'userservice', path: 'UserService'],
-            [name: 'usageservice', path: 'UsageService'],
-            [name: 'gateway', path: 'gateway']
+            [name: 'userservice', path: 'UserService/Dockerfile'],
+            [name: 'usageservice', path: 'UsageService/Dockerfile'],
+            [name: 'gateway', path: 'gateway/Dockerfile']
           ]
 
           withCredentials([usernamePassword(credentialsId: CREDS, usernameVariable: 'U', passwordVariable: 'P')]) {
@@ -63,7 +63,8 @@ pipeline {
               def imageTag = "${env.BRANCH_NAME}-${env.BUILD_NUMBER}"
               
               echo "🚀 Building ${svc.name}..."
-              sh "docker build -t ${imagePath}:${imageTag} ${svc.path}"
+              // 빌드 컨텍스트는 프로젝트 루트(.), Dockerfile 경로 지정
+              sh "docker build -f ${svc.dockerfile} -t ${imagePath}:${imageTag} ."
               
               echo "📤 Pushing ${imagePath}:${imageTag}..."
               sh "docker push ${imagePath}:${imageTag}"

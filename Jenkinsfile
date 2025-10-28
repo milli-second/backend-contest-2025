@@ -150,8 +150,8 @@ pipeline {
       echo "⏳ Waiting for databases to be ready..."
       sh """
         # PostgreSQL 준비 대기
-        kubectl wait --for=condition=ready pod -l app=userservice-postgres -n ${DB_NAMESPACE} --timeout=180s || true
-        kubectl wait --for=condition=ready pod -l app=usageservice-postgres -n ${DB_NAMESPACE} --timeout=180s || true
+        kubectl wait --for=condition=ready pod -l app=userservice-postgres -n ${DB_NAMESPACE} --timeout=300s || true
+        kubectl wait --for=condition=ready pod -l app=usageservice-postgres -n ${DB_NAMESPACE} --timeout=300s || true
 
         # Redis 준비 대기
         kubectl wait --for=condition=ready pod -l app=redis -n ${DB_NAMESPACE} --timeout=120s || true

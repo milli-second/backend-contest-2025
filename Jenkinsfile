@@ -24,7 +24,7 @@ pipeline {
     stage('Gradle Build') {
       steps {
         echo "⚙️ Running Gradle build..."
-        sh './gradlew :UserService:build :UsageService:build :gateway:build -x test --no-daemon'
+        sh './gradlew :UserService:build :InsightService:build :UsageService:build :gateway:build -x test --no-daemon'
       }
     }
 
@@ -55,6 +55,7 @@ pipeline {
         script {
           def modules = [
             [name: 'userservice', dockerfile: 'UserService/Dockerfile'],
+            [name: 'insightservice', dockerfile: 'InsightService/Dockerfile'],
             [name: 'usageservice', dockerfile: 'UsageService/Dockerfile'],
             [name: 'gateway', dockerfile: 'gateway/Dockerfile']
           ]

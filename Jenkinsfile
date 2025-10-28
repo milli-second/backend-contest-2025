@@ -6,7 +6,7 @@ pipeline {
     NEXUS_REPO_NAME = "screentimeai-repo" 
     CREDS = 'nexus-credentials'
     DOCKER_HOST = 'tcp://localhost:2375'
-    PATH = "/opt/docker-cli:${env.PATH}"
+    PATH = "/opt/binaries:${env.PATH}"  // ← Docker, kubectl 추가
     
     // CI/CD 테스트용 별도 네임스페이스
     APP_NAMESPACE = "screentimeai-cicd-test"

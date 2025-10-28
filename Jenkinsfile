@@ -102,93 +102,95 @@ pipeline {
     }
     
     stage('Deploy Secrets') {
-      steps {
-        script {
-          echo "🔐 Deploying secrets..."
-          
-          sh """
-            # DB Secrets을 CI/CD 테스트 네임스페이스에 적용
-            if [ -f k8s/secrets/db-secrets.yaml ]; then
-              sed 's/namespace: db/namespace: ${DB_NAMESPACE}/g' k8s/secrets/db-secrets.yaml | kubectl apply -f -
-            fi
-            
-            # App Secrets을 CI/CD 테스트 네임스페이스에 적용
-            if [ -f k8s/secrets/app-secrets.yaml ]; then
-              sed 's/namespace: screentimeai/namespace: ${APP_NAMESPACE}/g' k8s/secrets/app-secrets.yaml | kubectl apply -f -
-            fi
-            
-            echo "✅ Secrets deployed"
-          """
-        }
-      }
+  steps {
+    script {
+      echo "🔐 Deploying secrets..."
+      
+      sh """
+        # DB Secrets을 CI/CD 테스트 네임스페이스에 적용
+        if [ -f k8s/secrets/db-secrets.yaml ]; then
+          # 정확한 namespace 줄만 치환
+          sed 's/^  namespace: db\$/  namespace: ${DB_NAMESPACE}/g' k8s/secrets/db-secrets.yaml | kubectl apply -f -
+        fi
+        
+        # App Secrets을 CI/CD 테스트 네임스페이스에 적용
+        if [ -f k8s/secrets/app-secrets.yaml ]; then
+          sed 's/^  namespace: screentimeai\$/  namespace: ${APP_NAMESPACE}/g' k8s/secrets/app-secrets.yaml | kubectl apply -f -
+        fi
+        
+        echo "✅ Secrets deployed"
+      """
     }
+  }
+}
     
     stage('Deploy Databases') {
-      steps {
-        script {
-          echo "🗄️ Deploying databases..."
-          
-          def databases = [
-            'userservice-postgres',
-            'usageservice-postgres',
-            'redis',
-            'kafka'
-          ]
-          
-          for (db in databases) {
-            sh """
-              if [ -f k8s/databases/${db}.yaml ]; then
-                echo "Deploying ${db}..."
-                sed 's/namespace: db/namespace: ${DB_NAMESPACE}/g' k8s/databases/${db}.yaml | kubectl apply -f -
-              fi
-            """
-          }
-          
-          echo "⏳ Waiting for databases to be ready..."
-          sh """
-            # PostgreSQL 준비 대기
-            kubectl wait --for=condition=ready pod -l app=userservice-postgres -n ${DB_NAMESPACE} --timeout=180s || true
-            kubectl wait --for=condition=ready pod -l app=usageservice-postgres -n ${DB_NAMESPACE} --timeout=180s || true
-            
-            # Redis 준비 대기
-            kubectl wait --for=condition=ready pod -l app=redis -n ${DB_NAMESPACE} --timeout=120s || true
-            
-            # Kafka 준비 대기
-            kubectl wait --for=condition=ready pod -l app=kafka -n ${DB_NAMESPACE} --timeout=180s || true
-            
-            echo "✅ Databases are ready"
-          """
-        }
+  steps {
+    script {
+      echo "🗄️ Deploying databases..."
+      
+      def databases = [
+        'userservice-postgres',
+        'usageservice-postgres',
+        'redis',
+        'kafka'
+      ]
+      
+      for (db in databases) {
+        sh """
+          if [ -f k8s/databases/${db}.yaml ]; then
+            echo "Deploying ${db}..."
+            # 정확한 namespace 줄만 치환
+            sed 's/^  namespace: db\$/  namespace: ${DB_NAMESPACE}/g' k8s/databases/${db}.yaml | kubectl apply -f -
+          fi
+        """
       }
+      
+      echo "⏳ Waiting for databases to be ready..."
+      sh """
+        # PostgreSQL 준비 대기
+        kubectl wait --for=condition=ready pod -l app=userservice-postgres -n ${DB_NAMESPACE} --timeout=180s || true
+        kubectl wait --for=condition=ready pod -l app=usageservice-postgres -n ${DB_NAMESPACE} --timeout=180s || true
+        
+        # Redis 준비 대기
+        kubectl wait --for=condition=ready pod -l app=redis -n ${DB_NAMESPACE} --timeout=120s || true
+        
+        # Kafka 준비 대기
+        kubectl wait --for=condition=ready pod -l app=kafka -n ${DB_NAMESPACE} --timeout=180s || true
+        
+        echo "✅ Databases are ready"
+      """
     }
+  }
+}
     
     stage('Deploy Applications') {
-      steps {
-        script {
-          echo "🚢 Deploying applications with new images..."
-          
-          def services = [
-            [name: 'userservice', file: 'k8s/apps/userservice.yaml'],
-            [name: 'usageservice', file: 'k8s/apps/usageservice.yaml'],
-            [name: 'gateway', file: 'k8s/apps/gateway.yaml']
-          ]
-          
-          for (svc in services) {
-            def newImage = env."IMAGE_${svc.name.toUpperCase()}"
+  steps {
+    script {
+      echo "🚢 Deploying applications with new images..."
+      
+      def services = [
+        [name: 'userservice', file: 'k8s/apps/userservice.yaml'],
+        [name: 'usageservice', file: 'k8s/apps/usageservice.yaml'],
+        [name: 'gateway', file: 'k8s/apps/gateway.yaml']
+      ]
+      
+      for (svc in services) {
+        def newImage = env."IMAGE_${svc.name.toUpperCase()}"
+        
+        echo "📦 Deploying ${svc.name} with image: ${newImage}"
+        
+        sh """
+          # YAML 파일에서 namespace와 image 교체
+          if [ -f ${svc.file} ]; then
+            cat ${svc.file} | \
+              sed 's/^  namespace: screentimeai\$/  namespace: ${APP_NAMESPACE}/g' | \
+              sed "s|image:.*${svc.name}.*|image: ${newImage}|g" | \
+              kubectl apply -f -
+          else
+            echo "⚠️ ${svc.file} not found, creating deployment..."
             
-            echo "📦 Deploying ${svc.name} with image: ${newImage}"
-            
-            sh """
-              # YAML 파일에서 namespace와 image 교체
-              if [ -f ${svc.file} ]; then
-                cat ${svc.file} | \
-                  sed 's/namespace: screentimeai/namespace: ${APP_NAMESPACE}/g' | \
-                  sed "s|image:.*${svc.name}.*|image: ${newImage}|g" | \
-                  kubectl apply -f -
-              else
-                echo "⚠️ ${svc.file} not found, creating deployment..."
-                
-                cat <<EOF | kubectl apply -f -
+            cat <<EOFYAML | kubectl apply -f -
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -226,20 +228,20 @@ spec:
   - port: 8080
     targetPort: 8080
   type: ClusterIP
-EOF
-              fi
-            """
-          }
-          
-          echo "⏳ Waiting for application rollout..."
-          sh """
-            kubectl rollout status deployment/userservice -n ${APP_NAMESPACE} --timeout=5m || true
-            kubectl rollout status deployment/usageservice -n ${APP_NAMESPACE} --timeout=5m || true
-            kubectl rollout status deployment/gateway -n ${APP_NAMESPACE} --timeout=5m || true
-          """
-        }
+EOFYAML
+          fi
+        """
       }
+      
+      echo "⏳ Waiting for application rollout..."
+      sh """
+        kubectl rollout status deployment/userservice -n ${APP_NAMESPACE} --timeout=5m || true
+        kubectl rollout status deployment/usageservice -n ${APP_NAMESPACE} --timeout=5m || true
+        kubectl rollout status deployment/gateway -n ${APP_NAMESPACE} --timeout=5m || true
+      """
     }
+  }
+}
     
     stage('Verify Deployment') {
       steps {

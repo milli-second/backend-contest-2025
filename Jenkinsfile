@@ -3,10 +3,10 @@ pipeline {
   
   environment {
     REGISTRY = "nexus.cicd.svc.cluster.local:5000"
-    NEXUS_REPO_NAME = "screentimeai-repo" 
+    NEXUS_REPO_NAME = "screentimeai-repo"  
     CREDS = 'nexus-credentials'
     DOCKER_HOST = 'tcp://localhost:2375'
-    PATH = "/opt/binaries:${env.PATH}"  // ← Docker, kubectl 추가
+    PATH = "/opt/binaries:${env.PATH}"
     
     // CI/CD 테스트용 별도 네임스페이스
     APP_NAMESPACE = "screentimeai-cicd-test"
@@ -106,90 +106,87 @@ pipeline {
         script {
           echo "🔐 Deploying secrets..."
           sh """
-          # DB Secrets을 CI/CD 테스트 네임스페이스에 적용
-          if [ -f k8s/secrets/db-secrets.yaml ]; then
-          # ⭐️ ⭐️ ⭐️ 수정된 부분: 'namespace: db-test'를 찾아 'namespace: db-cicd-test'로 치환 ⭐️ ⭐️ ⭐️
-          sed 's/^  namespace: db-test\$/  namespace: ${DB_NAMESPACE}/g' k8s/secrets/db-secrets.yaml | kubectl apply -f -
-        fi
-          # App Secrets을 CI/CD 테스트 네임스페이스에 적용
-          if [ -f k8s/secrets/app-secrets.yaml ]; then
-          # ⭐️ ⭐️ ⭐️ 수정된 부분: 'namespace: screentimeai-test'를 찾아 치환한다고 가정
-          sed 's/^  namespace: screentimeai\$/  namespace: ${APP_NAMESPACE}/g' k8s/secrets/app-secrets.yaml | kubectl apply -f -
-        fi
-        
-        echo "✅ Secrets deployed"
-      """
-    }
-  }
-}
+            # DB Secrets을 CI/CD 테스트 네임스페이스에 적용 (db-test 치환)
+            if [ -f k8s/secrets/db-secrets.yaml ]; then
+              # ⭐️ 'namespace: db-test'를 찾아 'namespace: db-cicd-test'로 치환
+              cat k8s/secrets/db-secrets.yaml | sed 's/^  namespace: db-test\\$/  namespace: ${DB_NAMESPACE}/g' | kubectl apply -f -
+            fi
+            
+            # App Secrets을 CI/CD 테스트 네임스페이스에 적용 (screentimeai 치환 가정)
+            if [ -f k8s/secrets/app-secrets.yaml ]; then
+              cat k8s/secrets/app-secrets.yaml | sed 's/^  namespace: screentimeai\\$/  namespace: ${APP_NAMESPACE}/g' | kubectl apply -f -
+            fi
+            
+            echo "✅ Secrets deployed"
+          """
+        }
+      }
+    }
     
     stage('Deploy Databases') {
-  steps {
-    script {
-      echo "🗄️ Deploying databases..."
-      
-      def databases = [
-        'userservice-postgres',
-        'usageservice-postgres',
-        'redis',
-        'kafka'
-      ]
-      
-      for (db in databases) {
-        sh """
-          if [ -f k8s/databases/${db}.yaml ]; then
-            echo "Deploying ${db}..."
-            # 정확한 namespace 줄만 치환
-            sed 's/^  namespace: db\$/  namespace: ${DB_NAMESPACE}/g' k8s/databases/${db}.yaml | kubectl apply -f -
-          fi
-        """
+      steps {
+        script {
+          echo "🗄️ Deploying databases..."
+          
+          def databases = [
+            'userservice-postgres',
+            'usageservice-postgres',
+            'redis',
+            'kafka'
+          ]
+          
+          for (db in databases) {
+            sh """
+              if [ -f k8s/databases/${db}.yaml ]; then
+                echo "Deploying ${db}..."
+                # ⭐️ 'namespace: db'를 파이프라인 변수로 치환
+                cat k8s/databases/${db}.yaml | sed 's/^  namespace: db\\$/  namespace: ${DB_NAMESPACE}/g' | kubectl apply -f -
+              fi
+            """
+          }
+          
+          echo "⏳ Waiting for databases to be ready..."
+          sh """
+            kubectl wait --for=condition=ready pod -l app=userservice-postgres -n ${DB_NAMESPACE} --timeout=180s || true
+            kubectl wait --for=condition=ready pod -l app=usageservice-postgres -n ${DB_NAMESPACE} --timeout=180s || true
+            
+            kubectl wait --for=condition=ready pod -l app=redis -n ${DB_NAMESPACE} --timeout=120s || true
+            
+            kubectl wait --for=condition=ready pod -l app=kafka -n ${DB_NAMESPACE} --timeout=180s || true
+            
+            echo "✅ Databases are ready"
+          """
+        }
       }
-      
-      echo "⏳ Waiting for databases to be ready..."
-      sh """
-        # PostgreSQL 준비 대기
-        kubectl wait --for=condition=ready pod -l app=userservice-postgres -n ${DB_NAMESPACE} --timeout=180s || true
-        kubectl wait --for=condition=ready pod -l app=usageservice-postgres -n ${DB_NAMESPACE} --timeout=180s || true
-        
-        # Redis 준비 대기
-        kubectl wait --for=condition=ready pod -l app=redis -n ${DB_NAMESPACE} --timeout=120s || true
-        
-        # Kafka 준비 대기
-        kubectl wait --for=condition=ready pod -l app=kafka -n ${DB_NAMESPACE} --timeout=180s || true
-        
-        echo "✅ Databases are ready"
-      """
     }
-  }
-}
     
     stage('Deploy Applications') {
-  steps {
-    script {
-      echo "🚢 Deploying applications with new images..."
-      
-      def services = [
-        [name: 'userservice', file: 'k8s/apps/userservice.yaml'],
-        [name: 'usageservice', file: 'k8s/apps/usageservice.yaml'],
-        [name: 'gateway', file: 'k8s/apps/gateway.yaml']
-      ]
-      
-      for (svc in services) {
-        def newImage = env."IMAGE_${svc.name.toUpperCase()}"
-        
-        echo "📦 Deploying ${svc.name} with image: ${newImage}"
-        
-        sh """
-          # YAML 파일에서 namespace와 image 교체
-          if [ -f ${svc.file} ]; then
-            cat ${svc.file} | \
-              sed 's/^  namespace: screentimeai\$/  namespace: ${APP_NAMESPACE}/g' | \
-              sed "s|image:.*${svc.name}.*|image: ${newImage}|g" | \
-              kubectl apply -f -
-          else
-            echo "⚠️ ${svc.file} not found, creating deployment..."
+      steps {
+        script {
+          echo "🚢 Deploying applications with new images..."
+          
+          def services = [
+            [name: 'userservice', file: 'k8s/apps/userservice.yaml'],
+            [name: 'usageservice', file: 'k8s/apps/usageservice.yaml'],
+            [name: 'gateway', file: 'k8s/apps/gateway.yaml']
+          ]
+          
+          for (svc in services) {
+            def newImage = env."IMAGE_${svc.name.toUpperCase()}"
             
-            cat <<EOFYAML | kubectl apply -f -
+            echo "📦 Deploying ${svc.name} with image: ${newImage}"
+            
+            sh """
+              # YAML 파일에서 namespace와 image 교체
+              if [ -f ${svc.file} ]; then
+                cat ${svc.file} | \
+                  sed 's/^  namespace: screentimeai\\$/  namespace: ${APP_NAMESPACE}/g' | \
+                  sed "s|image:.*${svc.name}.*|image: ${newImage}|g" | \
+                  kubectl apply -f -
+              else
+                echo "⚠️ ${svc.file} not found, creating deployment..."
+                
+                cat <<EOFYAML | kubectl apply -f -
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -228,19 +225,19 @@ spec:
     targetPort: 8080
   type: ClusterIP
 EOFYAML
-          fi
-        """
+              fi
+            """
+          }
+          
+          echo "⏳ Waiting for application rollout..."
+          sh """
+            kubectl rollout status deployment/userservice -n ${APP_NAMESPACE} --timeout=5m || true
+            kubectl rollout status deployment/usageservice -n ${APP_NAMESPACE} --timeout=5m || true
+            kubectl rollout status deployment/gateway -n ${APP_NAMESPACE} --timeout=5m || true
+          """
+        }
       }
-      
-      echo "⏳ Waiting for application rollout..."
-      sh """
-        kubectl rollout status deployment/userservice -n ${APP_NAMESPACE} --timeout=5m || true
-        kubectl rollout status deployment/usageservice -n ${APP_NAMESPACE} --timeout=5m || true
-        kubectl rollout status deployment/gateway -n ${APP_NAMESPACE} --timeout=5m || true
-      """
     }
-  }
-}
     
     stage('Verify Deployment') {
       steps {
@@ -252,22 +249,22 @@ EOFYAML
             echo "📊 CI/CD Test Environment Status"
             echo "==================================="
             
-            echo "\\n🗄️ Database Namespace: ${DB_NAMESPACE}"
+            echo "\n🗄️ Database Namespace: ${DB_NAMESPACE}"
             kubectl get pods -n ${DB_NAMESPACE} -o wide
             
-            echo "\\n🚀 Application Namespace: ${APP_NAMESPACE}"
+            echo "\n🚀 Application Namespace: ${APP_NAMESPACE}"
             kubectl get pods -n ${APP_NAMESPACE} -o wide
             
-            echo "\\n🌐 Services"
+            echo "\n🌐 Services"
             kubectl get svc -n ${APP_NAMESPACE}
             
-            echo "\\n📦 StatefulSets (Databases)"
+            echo "\n📦 StatefulSets (Databases)"
             kubectl get statefulset -n ${DB_NAMESPACE}
             
-            echo "\\n💾 Persistent Volume Claims"
+            echo "\n💾 Persistent Volume Claims"
             kubectl get pvc -n ${DB_NAMESPACE}
             
-            echo "\\n==================================="
+            echo "\n==================================="
             echo "📊 Production Environment (unchanged)"
             echo "==================================="
             kubectl get pods -n screentimeai 2>/dev/null || echo "No production deployment found"
@@ -286,9 +283,9 @@ EOFYAML
       echo "   - App Namespace: ${APP_NAMESPACE}"
       echo ""
       echo "📦 Deployed Images:"
-      echo "   - UserService:  ${env.IMAGE_USERSERVICE}"
-      echo "   - UsageService: ${env.IMAGE_USAGESERVICE}"
-      echo "   - Gateway:      ${env.IMAGE_GATEWAY}"
+      echo "   - UserService:   ${env.IMAGE_USERSERVICE}"
+      echo "   - UsageService:  ${env.IMAGE_USAGESERVICE}"
+      echo "   - Gateway:       ${env.IMAGE_GATEWAY}"
       echo ""
       echo "ℹ️  Production deployment (screentimeai, db) is unaffected"
       echo ""

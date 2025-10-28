@@ -102,26 +102,27 @@ pipeline {
     }
     
     stage('Deploy Secrets') {
-  steps {
-    script {
-      echo "🔐 Deploying secrets..."
-      
-      sh """
-        # DB Secrets을 CI/CD 테스트 네임스페이스에 적용
-        if [ -f k8s/secrets/db-secrets.yaml ]; then
-          # 정확한 namespace 줄만 치환
-          sed 's/^  namespace: db\$/  namespace: ${DB_NAMESPACE}/g' k8s/secrets/db-secrets.yaml | kubectl apply -f -
-        fi
-        
-        # App Secrets을 CI/CD 테스트 네임스페이스에 적용
-        if [ -f k8s/secrets/app-secrets.yaml ]; then
-          sed 's/^  namespace: screentimeai\$/  namespace: ${APP_NAMESPACE}/g' k8s/secrets/app-secrets.yaml | kubectl apply -f -
-        fi
-        
-        echo "✅ Secrets deployed"
-      """
-    }
-  }
+  steps {
+    script {
+      echo "🔐 Deploying secrets..."
+      
+      sh """
+        # DB Secrets을 CI/CD 테스트 네임스페이스에 적용
+        if [ -f k8s/secrets/db-secrets.yaml ]; then
+          # ⭐️ ⭐️ ⭐️ 수정된 부분: 'namespace: db-test'를 찾아 'namespace: db-cicd-test'로 치환 ⭐️ ⭐️ ⭐️
+          sed 's/^  namespace: db-test\$/  namespace: ${DB_NAMESPACE}/g' k8s/secrets/db-secrets.yaml | kubectl apply -f -
+        fi
+        
+        # App Secrets을 CI/CD 테스트 네임스페이스에 적용
+        if [ -f k8s/secrets/app-secrets.yaml ]; then
+          # ⭐️ ⭐️ ⭐️ 수정된 부분: 'namespace: screentimeai-test'를 찾아 치환한다고 가정
+          sed 's/^  namespace: screentimeai\$/  namespace: ${APP_NAMESPACE}/g' k8s/secrets/app-secrets.yaml | kubectl apply -f -
+        fi
+        
+        echo "✅ Secrets deployed"
+      """
+    }
+  }
 }
     
     stage('Deploy Databases') {

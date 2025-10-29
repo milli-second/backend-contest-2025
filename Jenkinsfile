@@ -64,7 +64,7 @@ pipeline {
             sh 'echo "$P" | docker login ${REGISTRY} -u "$U" --password-stdin'
 
             for (svc in modules) {
-              def imagePath = "${REGISTRY}/${NEXUS_REPO_NAME}/${svc.name}"
+              def imagePath = "${REGISTRY}/${svc.name}"
               def imageTag = "${env.BRANCH_NAME}-${env.BUILD_NUMBER}"
 
               echo "🚀 Building ${svc.name}..."
